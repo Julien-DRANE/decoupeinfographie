@@ -94,12 +94,15 @@ const state = {
   previewRuntime: null,
   previewEdit: {
     dragging: false,
+    mode: null,
     zoneId: null,
     handle: null,
     startX: 0,
     startY: 0,
     startBox: null,
     pointerMoved: false,
+    createMode: false,
+    draftBox: null,
   },
 };
 
@@ -109,6 +112,7 @@ const detectButton = document.querySelector("#detectButton");
 const downloadAllButton = document.querySelector("#downloadAllButton");
 const openProjectButton = document.querySelector("#openProjectButton");
 const saveProjectButton = document.querySelector("#saveProjectButton");
+const addZoneModeButton = document.querySelector("#addZoneModeButton");
 const selectAllZonesButton = document.querySelector("#selectAllZonesButton");
 const deselectAllZonesButton = document.querySelector("#deselectAllZonesButton");
 const exportHtmlButton = document.querySelector("#exportHtmlButton");
@@ -452,6 +456,10 @@ toggleZoneLockButton.addEventListener("click", () => {
   toggleSelectedZoneLock();
 });
 
+addZoneModeButton.addEventListener("click", () => {
+  toggleAddZoneMode();
+});
+
 createGroupButton.addEventListener("click", () => {
   createNewGroup();
 });
@@ -637,6 +645,10 @@ function drawAnnotatedPreview() {
     }
   });
 
+  if (state.previewEdit.createMode && state.previewEdit.draftBox) {
+    drawDraftPreviewBox(state.previewEdit.draftBox);
+  }
+
   previewContext.restore();
 }
 
@@ -653,12 +665,46 @@ function drawPreviewResizeHandles(zone) {
   previewContext.restore();
 }
 
+function drawDraftPreviewBox(box) {
+  previewContext.save();
+  previewContext.fillStyle = "rgba(32, 100, 203, 0.14)";
+  previewContext.strokeStyle = "rgba(32, 100, 203, 0.95)";
+  previewContext.setLineDash([10, 6]);
+  previewContext.lineWidth = 2;
+  previewContext.fillRect(box.x, box.y, box.width, box.height);
+  previewContext.strokeRect(box.x, box.y, box.width, box.height);
+  previewContext.restore();
+}
+
 function handlePreviewCanvasPointerDown(event) {
   if (!state.sourceImage || !state.zones.length) {
-    return;
+    if (!state.sourceImage) {
+      return;
+    }
   }
 
   const point = getCanvasPoint(event);
+
+  if (state.previewEdit.createMode) {
+    state.previewEdit.dragging = true;
+    state.previewEdit.mode = "create";
+    state.previewEdit.zoneId = null;
+    state.previewEdit.handle = null;
+    state.previewEdit.startX = point.x;
+    state.previewEdit.startY = point.y;
+    state.previewEdit.startBox = null;
+    state.previewEdit.pointerMoved = false;
+    state.previewEdit.draftBox = {
+      x: Math.round(point.x),
+      y: Math.round(point.y),
+      width: 1,
+      height: 1,
+    };
+    drawAnnotatedPreview();
+    event.preventDefault();
+    return;
+  }
+
   const handleHit = getPreviewHandleHit(point);
   if (handleHit && !handleHit.zone.locked) {
     if (state.selectedZoneId !== handleHit.zone.id) {
@@ -666,6 +712,7 @@ function handlePreviewCanvasPointerDown(event) {
     }
     state.previewEdit = {
       dragging: true,
+      mode: "resize",
       zoneId: handleHit.zone.id,
       handle: handleHit.handle,
       startX: point.x,
@@ -677,6 +724,8 @@ function handlePreviewCanvasPointerDown(event) {
         height: handleHit.zone.height,
       },
       pointerMoved: false,
+      createMode: false,
+      draftBox: null,
     };
     event.preventDefault();
     return;
@@ -696,6 +745,13 @@ function handlePreviewCanvasPointerMove(event) {
 
   const point = getCanvasPoint(event);
   if (state.previewEdit.dragging) {
+    if (state.previewEdit.mode === "create") {
+      state.previewEdit.draftBox = normalizeDraftBox(state.previewEdit.startX, state.previewEdit.startY, point.x, point.y);
+      state.previewEdit.pointerMoved = true;
+      drawAnnotatedPreview();
+      return;
+    }
+
     const zone = state.zones.find((item) => item.id === state.previewEdit.zoneId);
     if (!zone || zone.locked) {
       resetPreviewEditState();
@@ -720,6 +776,11 @@ function handlePreviewCanvasPointerMove(event) {
     return;
   }
 
+  if (state.previewEdit.createMode) {
+    previewCanvas.style.cursor = "crosshair";
+    return;
+  }
+
   const zone = findZoneAtCanvasPoint(point);
   previewCanvas.style.cursor = zone ? "pointer" : "default";
 }
@@ -737,8 +798,19 @@ function handlePreviewCanvasPointerUp() {
 
   const zone = state.zones.find((item) => item.id === state.previewEdit.zoneId);
   const moved = state.previewEdit.pointerMoved;
+  const mode = state.previewEdit.mode;
+  const draftBox = state.previewEdit.draftBox ? { ...state.previewEdit.draftBox } : null;
   resetPreviewEditState();
-  previewCanvas.style.cursor = "default";
+  previewCanvas.style.cursor = state.previewEdit.createMode ? "crosshair" : "default";
+
+  if (mode === "create") {
+    if (moved && draftBox && draftBox.width >= 16 && draftBox.height >= 16) {
+      createManualZone(draftBox);
+    } else {
+      drawAnnotatedPreview();
+    }
+    return;
+  }
 
   if (!zone || !moved) {
     drawAnnotatedPreview();
@@ -767,6 +839,25 @@ function toggleSelectedZoneLock() {
   updateAnimationControlsState();
 }
 
+function toggleAddZoneMode() {
+  state.previewEdit.createMode = !state.previewEdit.createMode;
+  state.previewEdit.draftBox = null;
+  state.previewEdit.dragging = false;
+  state.previewEdit.mode = null;
+  addZoneModeButton.textContent = state.previewEdit.createMode ? "Terminer l'ajout" : "Ajouter une zone";
+  addZoneModeButton.classList.toggle("active", state.previewEdit.createMode);
+  previewCanvas.style.cursor = state.previewEdit.createMode ? "crosshair" : "default";
+  if (state.previewEdit.createMode) {
+    setStatus(
+      "Mode ajout manuel actif.",
+      "Trace une nouvelle zone dans l'aperçu de detection avec la souris."
+    );
+  } else if (state.sourceImage) {
+    setStatus("Mode ajout manuel desactive.", `${state.zones.length} zone(s) actuellement disponibles.`);
+  }
+  drawAnnotatedPreview();
+}
+
 function getCanvasPoint(event) {
   const rect = previewCanvas.getBoundingClientRect();
   const scaleX = previewCanvas.width / Math.max(rect.width, 1);
@@ -774,6 +865,19 @@ function getCanvasPoint(event) {
   return {
     x: (event.clientX - rect.left) * scaleX,
     y: (event.clientY - rect.top) * scaleY,
+  };
+}
+
+function normalizeDraftBox(startX, startY, endX, endY) {
+  const left = clamp(Math.min(startX, endX), 0, previewCanvas.width);
+  const top = clamp(Math.min(startY, endY), 0, previewCanvas.height);
+  const right = clamp(Math.max(startX, endX), 0, previewCanvas.width);
+  const bottom = clamp(Math.max(startY, endY), 0, previewCanvas.height);
+  return {
+    x: Math.round(left),
+    y: Math.round(top),
+    width: Math.max(1, Math.round(right - left)),
+    height: Math.max(1, Math.round(bottom - top)),
   };
 }
 
@@ -866,12 +970,15 @@ function computeResizedBox(startBox, handle, deltaX, deltaY) {
 function resetPreviewEditState() {
   state.previewEdit = {
     dragging: false,
+    mode: null,
     zoneId: null,
     handle: null,
     startX: 0,
     startY: 0,
     startBox: null,
     pointerMoved: false,
+    createMode: state.previewEdit.createMode,
+    draftBox: null,
   };
 }
 
@@ -897,6 +1004,35 @@ function refreshZoneAsset(zone) {
   zone.dataUrl = rebuilt.dataUrl;
   zone.sourceWidth = rebuilt.sourceWidth;
   zone.sourceHeight = rebuilt.sourceHeight;
+}
+
+function createManualZone(box) {
+  const enriched = enrichLocalZoneGeometry(
+    {
+      x: box.x,
+      y: box.y,
+      width: box.width,
+      height: box.height,
+      area: box.width * box.height,
+    },
+    null
+  );
+  const zone = createZoneAsset(enriched, state.zones.length);
+  zone.animation.order = state.zones.length;
+  zone.animation.step = state.zones.length + 1;
+  state.zones.push(zone);
+  state.selectedZoneId = zone.id;
+  state.selectedZoneIds = [zone.id];
+  state.stepEditor.step = zone.animation.step;
+  drawAnnotatedPreview();
+  renderZones(state.zones);
+  renderAnimationStage();
+  updateInspector();
+  loadStepEditorFromZones(true);
+  renderGroupsPanel();
+  renderZonesOrderPanel();
+  updateAnimationControlsState();
+  setStatus("Zone ajoutee manuellement.", `${zone.width} x ${zone.height} px • origine (${zone.x}, ${zone.y})`);
 }
 
 function runDetection() {
