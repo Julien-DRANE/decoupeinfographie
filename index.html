@@ -1,0 +1,540 @@
+<!DOCTYPE html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Studio de decoupe et d'animation</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=Instrument+Serif:ital@0;1&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <main class="app-shell">
+      <section class="hero">
+        <p class="eyebrow">Decoupe d'infographies et slide d'animation web</p>
+        <h1>Passer d'une image a une surcouche animee pour ton diaporama</h1>
+        <p class="hero-copy">
+          Detecte les zones, choisis celles a reveler, regle leur animation puis
+          exporte une slide HTML transparente a superposer a ton presentation.
+        </p>
+      </section>
+
+      <section class="workspace">
+        <aside class="panel controls">
+          <div class="panel-header">
+            <h2>Detection</h2>
+            <label class="file-picker">
+              <input id="imageInput" type="file" accept="image/*" />
+              <span>Choisir une image</span>
+            </label>
+            <input id="projectInput" type="file" accept=".json,application/json" hidden />
+          </div>
+
+          <div class="control-group">
+            <label for="presetSelect">
+              Preset de detection
+              <strong id="presetHint">Equilibre</strong>
+            </label>
+            <select id="presetSelect" class="select-control">
+              <option value="balanced">Equilibre</option>
+              <option value="framed">Infographie a cadres</option>
+              <option value="fine">Elements fins</option>
+              <option value="blocks">Gros blocs</option>
+              <option value="dense">Infographie dense</option>
+              <option value="separated">Zones bien separees</option>
+              <option value="custom">Personnalise</option>
+            </select>
+          </div>
+
+          <div class="control-group">
+            <label for="thresholdRange">
+              Sensibilite couleur
+              <strong id="thresholdValue">28</strong>
+            </label>
+            <input id="thresholdRange" type="range" min="5" max="120" value="28" />
+          </div>
+
+          <div class="control-group">
+            <label for="minAreaRange">
+              Taille minimale d'une zone
+              <strong id="minAreaValue">1800</strong>
+            </label>
+            <input
+              id="minAreaRange"
+              type="range"
+              min="200"
+              max="12000"
+              step="100"
+              value="1800"
+            />
+          </div>
+
+          <div class="control-group">
+            <label for="paddingRange">
+              Marge autour des zones
+              <strong id="paddingValue">16 px</strong>
+            </label>
+            <input id="paddingRange" type="range" min="0" max="60" value="16" />
+          </div>
+
+          <div class="control-group">
+            <label for="mergeDistanceRange">
+              Fusion de zones proches
+              <strong id="mergeDistanceValue">18 px</strong>
+            </label>
+            <input
+              id="mergeDistanceRange"
+              type="range"
+              min="0"
+              max="80"
+              value="18"
+            />
+          </div>
+
+          <div class="actions">
+            <button id="detectButton" class="btn btn-primary" disabled>
+              Detecter les zones
+            </button>
+            <button id="downloadAllButton" class="btn btn-secondary" disabled>
+              Telecharger toutes les zones
+            </button>
+          </div>
+
+          <div class="actions">
+            <button id="openProjectButton" class="btn btn-secondary">
+              Ouvrir un projet JSON
+            </button>
+            <button id="saveProjectButton" class="btn btn-secondary" disabled>
+              Sauvegarder le projet JSON
+            </button>
+          </div>
+
+          <div class="status-card">
+            <h3>Etat</h3>
+            <p id="statusText">Charge une image pour commencer.</p>
+            <p id="summaryText" class="summary"></p>
+          </div>
+        </aside>
+
+        <section class="panel stage-panel">
+          <div class="stage-toolbar">
+            <h2>Apercu de detection</h2>
+            <div class="legend">
+              <span class="legend-chip">Zone detectee</span>
+            </div>
+          </div>
+          <div class="stage-wrapper">
+            <canvas id="previewCanvas"></canvas>
+          </div>
+        </section>
+      </section>
+
+      <section class="panel results-panel">
+        <div class="panel-header">
+          <div>
+            <h2>Zones detectees</h2>
+            <p>Selectionne les blocs a garder dans la slide d'animation.</p>
+          </div>
+          <div class="zones-actions">
+            <button id="selectAllZonesButton" class="btn btn-secondary" disabled>
+              Tout inclure
+            </button>
+            <button id="deselectAllZonesButton" class="btn btn-secondary" disabled>
+              Tout retirer
+            </button>
+          </div>
+        </div>
+        <div id="zonesGrid" class="zones-grid">
+          <article class="empty-state">
+            Les zones detectees apparaitront ici apres analyse.
+          </article>
+        </div>
+      </section>
+
+      <section class="editor-grid">
+        <aside class="panel animation-panel">
+          <div class="panel-header">
+            <h2>Slide d'animation</h2>
+          </div>
+
+          <div class="control-group">
+            <label for="formatSelect">
+              Format de sortie
+              <strong id="formatHint">16:9</strong>
+            </label>
+            <select id="formatSelect" class="select-control">
+              <option value="16-9">16:9</option>
+              <option value="16-10">16:10</option>
+              <option value="4-3">4:3</option>
+              <option value="3-2">3:2</option>
+              <option value="1-1">1:1</option>
+              <option value="21-9">21:9</option>
+              <option value="9-16">9:16</option>
+              <option value="a4-landscape">A4 paysage</option>
+              <option value="a4-portrait">A4 portrait</option>
+            </select>
+          </div>
+
+          <div class="control-group">
+            <label for="startTriggerSelect">Demarrage de l'animation</label>
+            <select id="startTriggerSelect" class="select-control">
+              <option value="slide">Au changement de slide</option>
+              <option value="click">Au premier clic</option>
+              <option value="key">A la premiere touche</option>
+            </select>
+          </div>
+
+          <div class="control-group">
+            <label for="stepModeSelect">Progression des etapes</label>
+            <select id="stepModeSelect" class="select-control">
+              <option value="all">Tout d'un coup</option>
+              <option value="auto">Automatique par etape</option>
+              <option value="click">Une etape par clic</option>
+              <option value="key">Une etape par touche</option>
+            </select>
+          </div>
+
+          <div class="control-group">
+            <label for="autoStepGapRange">
+              Pause entre etapes auto
+              <strong id="autoStepGapValue">220 ms</strong>
+            </label>
+            <input
+              id="autoStepGapRange"
+              type="range"
+              min="0"
+              max="2000"
+              step="20"
+              value="220"
+            />
+          </div>
+
+          <div class="control-group">
+            <label class="toggle-line" for="guideToggle">
+              <span>Afficher l'image guide dans l'editeur</span>
+              <input id="guideToggle" type="checkbox" checked />
+            </label>
+          </div>
+
+          <div class="actions">
+            <button id="playPreviewButton" class="btn btn-primary" disabled>
+              Lancer l'aperu
+            </button>
+            <button id="resetPreviewButton" class="btn btn-secondary" disabled>
+              Reinitialiser
+            </button>
+            <button id="exportHtmlButton" class="btn btn-secondary" disabled>
+              Exporter la slide HTML
+            </button>
+          </div>
+
+          <div class="status-card">
+            <h3>Lecture</h3>
+            <p id="animationStatusText">
+              Les reglages d'animation apparaitront ici apres detection.
+            </p>
+          </div>
+
+          <div class="status-card">
+            <h3>Reglage par etape</h3>
+
+            <div class="control-group compact-group">
+              <label for="stepEditorInput">Etape ciblee</label>
+              <input id="stepEditorInput" class="number-control" type="number" min="1" step="1" value="1" />
+            </div>
+
+            <div class="control-group compact-group">
+              <label for="stepEffectSelect">Effet pour cette etape</label>
+              <select id="stepEffectSelect" class="select-control">
+                <option value="fade">Fondu net</option>
+                <option value="fade-up">Fondu depuis le bas</option>
+                <option value="fade-down">Fondu depuis le haut</option>
+                <option value="fade-left">Fondu depuis la gauche</option>
+                <option value="fade-right">Fondu depuis la droite</option>
+                <option value="zoom">Zoom doux</option>
+                <option value="pop">Pop subtil</option>
+                <option value="mist-left">Brume laterale gauche</option>
+                <option value="mist-right">Brume laterale droite</option>
+                <option value="mist-up">Brume montante</option>
+                <option value="drift-left">Glissement feutre gauche</option>
+                <option value="drift-right">Glissement feutre droite</option>
+              </select>
+            </div>
+
+            <div class="control-group compact-group">
+              <label for="stepDurationRange">
+                Duree de l'etape
+                <strong id="stepDurationValue">700 ms</strong>
+              </label>
+              <input id="stepDurationRange" type="range" min="100" max="4000" step="20" value="700" />
+            </div>
+
+            <div class="control-group compact-group">
+              <label for="stepStaggerRange">
+                Decalage entre zones
+                <strong id="stepStaggerValue">80 ms</strong>
+              </label>
+              <input id="stepStaggerRange" type="range" min="0" max="1200" step="20" value="80" />
+            </div>
+
+            <div class="actions compact-actions">
+              <button id="applyStepSettingsButton" class="btn btn-secondary" disabled>
+                Appliquer a l'etape
+              </button>
+            </div>
+
+            <p id="stepEditorSummary" class="summary"></p>
+          </div>
+        </aside>
+
+        <section class="panel animation-stage-panel">
+          <div class="stage-toolbar">
+            <h2>Apercu de la slide exportee</h2>
+            <div class="legend">
+              <span class="legend-chip alt-chip">Zone animable</span>
+              <button id="fullscreenPreviewButton" class="btn btn-secondary">
+                Plein ecran
+              </button>
+            </div>
+          </div>
+          <div class="animation-stage-wrap">
+            <div id="animationStageViewport" class="animation-stage-viewport">
+              <div id="animationStage" class="animation-stage"></div>
+            </div>
+          </div>
+          <div class="under-stage-grid">
+            <section class="under-stage-card">
+              <div class="panel-header">
+                <div>
+                  <h2>Evenements d'apparition</h2>
+                  <p>Selection multiple puis groupement d'elements avec decalage maitrise.</p>
+                </div>
+                <div class="zones-actions">
+                  <button id="createGroupButton" class="btn btn-secondary" disabled>
+                    Grouper la selection
+                  </button>
+                  <button id="ungroupSelectedZoneButton" class="btn btn-secondary" disabled>
+                    Retirer la zone
+                  </button>
+                </div>
+              </div>
+              <div id="groupsList" class="groups-list">
+                <article class="empty-state">
+                  Selectionne plusieurs zones avec Ctrl puis clique sur Grouper la selection.
+                </article>
+              </div>
+            </section>
+
+            <section class="under-stage-card">
+              <div class="panel-header">
+                <div>
+                  <h2>Ordre des zones</h2>
+                  <p>Reordonner les elements avec poignees visuelles pour la narration.</p>
+                </div>
+              </div>
+              <div id="zonesOrderList" class="groups-list">
+                <article class="empty-state">
+                  La liste des zones apparaitra ici apres detection.
+                </article>
+              </div>
+            </section>
+
+            <section class="under-stage-card">
+              <div class="panel-header">
+                <div>
+                  <h2>Presets de presentation</h2>
+                  <p>Des enchainements plus spectaculaires mais encore propres.</p>
+                </div>
+              </div>
+              <div class="preset-actions">
+                <button id="presetCascadeButton" class="btn btn-secondary">
+                  Cascade
+                </button>
+                <button id="presetOrganicButton" class="btn btn-secondary">
+                  Organique
+                </button>
+                <button id="presetFloralButton" class="btn btn-secondary">
+                  Floral
+                </button>
+                <button id="presetConstellationButton" class="btn btn-secondary">
+                  Constellation
+                </button>
+              </div>
+              <div class="effects-catalog">
+                <span class="effect-pill">Fondu net</span>
+                <span class="effect-pill">Fondu depuis le bas</span>
+                <span class="effect-pill">Fondu depuis le haut</span>
+                <span class="effect-pill">Fondu depuis la gauche</span>
+                <span class="effect-pill">Fondu depuis la droite</span>
+                <span class="effect-pill">Zoom doux</span>
+                <span class="effect-pill">Pop subtil</span>
+                <span class="effect-pill">Brume laterale gauche</span>
+                <span class="effect-pill">Brume laterale droite</span>
+                <span class="effect-pill">Brume montante</span>
+                <span class="effect-pill">Glissement feutre gauche</span>
+                <span class="effect-pill">Glissement feutre droite</span>
+              </div>
+            </section>
+          </div>
+        </section>
+
+        <aside class="panel inspector-panel">
+          <div class="panel-header">
+            <h2>Inspecteur de zone</h2>
+          </div>
+
+          <div id="inspectorEmptyState" class="empty-inspector">
+            Choisis une zone dans la grille ou dans l'apercu pour regler son animation.
+          </div>
+
+          <div id="inspectorForm" class="inspector-form hidden">
+            <div class="status-card selected-card">
+              <h3 id="selectedZoneTitle">Zone</h3>
+              <p id="selectedZoneMeta"></p>
+            </div>
+
+            <div class="status-card selected-card">
+              <h3>Double analyse</h3>
+              <div class="zone-card-actions compact-actions">
+                <button id="splitZoneAutoButton" class="btn btn-secondary">
+                  Redecouper auto
+                </button>
+                <button id="splitZoneVerticalButton" class="btn btn-secondary">
+                  Redecouper verticalement
+                </button>
+                <button id="splitZoneHorizontalButton" class="btn btn-secondary">
+                  Redecouper horizontalement
+                </button>
+              </div>
+              <div class="zone-card-actions compact-actions">
+                <button id="splitZone2ColsButton" class="btn btn-secondary">
+                  Forcer 2 colonnes
+                </button>
+                <button id="splitZone3ColsButton" class="btn btn-secondary">
+                  Forcer 3 colonnes
+                </button>
+                <button id="splitZone4ColsButton" class="btn btn-secondary">
+                  Forcer 4 colonnes
+                </button>
+              </div>
+              <div class="zone-card-actions compact-actions">
+                <button id="resetSubdivideButton" class="btn btn-secondary">
+                  Reinitialiser le second decoupage
+                </button>
+              </div>
+              <p id="splitZoneSummary" class="summary">
+                Reanalyse uniquement cette zone pour obtenir des sous-zones plus fines.
+              </p>
+            </div>
+
+            <div class="control-group">
+              <label class="toggle-line" for="zoneEnabledCheckbox">
+                <span>Inclure cette zone dans l'animation</span>
+                <input id="zoneEnabledCheckbox" type="checkbox" />
+              </label>
+            </div>
+
+            <div class="control-group">
+              <label for="zoneStepInput">Etape de revelation</label>
+              <input id="zoneStepInput" class="number-control" type="number" min="1" step="1" />
+            </div>
+
+            <div class="control-group">
+              <label for="zoneEffectSelect">Effet d'entree</label>
+              <select id="zoneEffectSelect" class="select-control">
+                <option value="fade">Fondu net</option>
+                <option value="fade-up">Fondu depuis le bas</option>
+                <option value="fade-down">Fondu depuis le haut</option>
+                <option value="fade-left">Fondu depuis la gauche</option>
+                <option value="fade-right">Fondu depuis la droite</option>
+                <option value="zoom">Zoom doux</option>
+                <option value="pop">Pop subtil</option>
+                <option value="mist-left">Brume laterale gauche</option>
+                <option value="mist-right">Brume laterale droite</option>
+                <option value="mist-up">Brume montante</option>
+                <option value="drift-left">Glissement feutre gauche</option>
+                <option value="drift-right">Glissement feutre droite</option>
+              </select>
+            </div>
+
+            <div class="control-group">
+              <label for="zoneDurationRange">
+                Duree
+                <strong id="zoneDurationValue">700 ms</strong>
+              </label>
+              <input id="zoneDurationRange" type="range" min="100" max="4000" step="20" value="700" />
+            </div>
+
+            <div class="control-group">
+              <label for="zoneDelayRange">
+                Delai interne
+                <strong id="zoneDelayValue">0 ms</strong>
+              </label>
+              <input id="zoneDelayRange" type="range" min="0" max="2500" step="20" value="0" />
+            </div>
+
+            <div class="control-group">
+              <label for="zoneOffsetXRange">
+                Decalage horizontal
+                <strong id="zoneOffsetXValue">0 px</strong>
+              </label>
+              <input id="zoneOffsetXRange" type="range" min="-240" max="240" step="2" value="0" />
+            </div>
+
+            <div class="control-group">
+              <label for="zoneOffsetYRange">
+                Decalage vertical
+                <strong id="zoneOffsetYValue">24 px</strong>
+              </label>
+              <input id="zoneOffsetYRange" type="range" min="-240" max="240" step="2" value="24" />
+            </div>
+
+            <div class="control-group">
+              <label for="zoneScaleRange">
+                Echelle de depart
+                <strong id="zoneScaleValue">96 %</strong>
+              </label>
+              <input id="zoneScaleRange" type="range" min="40" max="140" step="1" value="96" />
+            </div>
+
+            <div class="control-group">
+              <label for="zoneRotateRange">
+                Rotation de depart
+                <strong id="zoneRotateValue">0 deg</strong>
+              </label>
+              <input id="zoneRotateRange" type="range" min="-45" max="45" step="1" value="0" />
+            </div>
+          </div>
+        </aside>
+      </section>
+    </main>
+
+    <template id="zoneCardTemplate">
+      <article class="zone-card">
+        <div class="zone-preview-wrap">
+          <img class="zone-preview" alt="" />
+          <label class="zone-toggle">
+            <input class="zone-enabled-toggle" type="checkbox" />
+            <span>Animee</span>
+          </label>
+        </div>
+        <div class="zone-meta">
+          <h3 class="zone-title"></h3>
+          <p class="zone-dimensions"></p>
+          <p class="zone-position"></p>
+          <p class="zone-step"></p>
+        </div>
+        <div class="zone-card-actions">
+          <button class="btn btn-tertiary zone-edit">Regler</button>
+          <button class="btn btn-secondary zone-download">PNG</button>
+        </div>
+      </article>
+    </template>
+
+    <script src="./app.js"></script>
+  </body>
+</html>
