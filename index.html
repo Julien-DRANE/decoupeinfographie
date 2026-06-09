@@ -125,6 +125,9 @@
             <h2>Apercu de detection</h2>
             <div class="legend">
               <span class="legend-chip">Zone detectee</span>
+              <button id="toggleZoneLockButton" class="btn btn-secondary" disabled>
+                Verrouiller la zone
+              </button>
             </div>
           </div>
           <div class="stage-wrapper">
@@ -184,7 +187,7 @@
             <select id="startTriggerSelect" class="select-control">
               <option value="slide">Au changement de slide</option>
               <option value="click">Au premier clic</option>
-              <option value="key">A la premiere touche</option>
+              <option value="key" selected>A la premiere touche</option>
             </select>
           </div>
 
@@ -194,7 +197,7 @@
               <option value="all">Tout d'un coup</option>
               <option value="auto">Automatique par etape</option>
               <option value="click">Une etape par clic</option>
-              <option value="key">Une etape par touche</option>
+              <option value="key" selected>Une etape par touche</option>
             </select>
           </div>
 

@@ -4,6 +4,7 @@ Application web statique pour :
 
 - charger une image d'infographie,
 - detecter automatiquement des zones visuelles,
+- mieux conserver aussi les zones rondes ou quasi circulaires,
 - exporter chaque zone en `PNG` transparent,
 - composer une slide HTML d'animation a superposer a un diaporama existant.
 
@@ -31,6 +32,7 @@ Raccourci utile :
 - `Taille minimale d'une zone` : filtre les petits fragments.
 - `Marge autour des zones` : ajoute de l'air autour du bloc exporte.
 - `Fusion de zones proches` : regroupe des morceaux voisins en un seul export.
+- les zones rondes detectees sont exportees avec une transparence adaptee pour mieux respecter leur forme.
 
 ### Presets disponibles
 
@@ -148,6 +150,8 @@ Ils redistribuent les effets, les etapes et les decalages pour produire des arri
   - une etape par clic,
   - une etape par touche.
 
+Par defaut, le demarrage de l'animation et la progression sont maintenant regles sur `touche`.
+
 ## Sauvegarde de projet
 
 Deux boutons permettent maintenant de memoriser un travail complet :
@@ -163,6 +167,8 @@ L'export produit une page HTML autonome avec :
 - positionnement des zones sur une scene au format choisi,
 - gestion du declenchement et des etapes,
 - animations CSS/JS embarquees.
+
+Les PNG de zones sont generes a partir de la resolution native de l'image source, sans reduction intermediaire.
 
 Cette slide peut servir de surcouche visuelle dans un diaporama HTML existant.
 

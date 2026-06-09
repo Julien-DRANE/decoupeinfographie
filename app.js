@@ -80,8 +80,8 @@ const state = {
   selectedZoneIds: [],
   animationSettings: {
     format: "16-9",
-    startTrigger: "slide",
-    stepMode: "all",
+    startTrigger: "key",
+    stepMode: "key",
     autoStepGap: 220,
     showGuide: true,
   },
@@ -92,6 +92,15 @@ const state = {
     stagger: 80,
   },
   previewRuntime: null,
+  previewEdit: {
+    dragging: false,
+    zoneId: null,
+    handle: null,
+    startX: 0,
+    startY: 0,
+    startBox: null,
+    pointerMoved: false,
+  },
 };
 
 const imageInput = document.querySelector("#imageInput");
@@ -115,6 +124,7 @@ const presetConstellationButton = document.querySelector("#presetConstellationBu
 
 const previewCanvas = document.querySelector("#previewCanvas");
 const previewContext = previewCanvas.getContext("2d");
+const toggleZoneLockButton = document.querySelector("#toggleZoneLockButton");
 const zonesGrid = document.querySelector("#zonesGrid");
 const groupsList = document.querySelector("#groupsList");
 const zonesOrderList = document.querySelector("#zonesOrderList");
@@ -438,6 +448,10 @@ fullscreenPreviewButton.addEventListener("click", async () => {
   }
 });
 
+toggleZoneLockButton.addEventListener("click", () => {
+  toggleSelectedZoneLock();
+});
+
 createGroupButton.addEventListener("click", () => {
   createNewGroup();
 });
@@ -456,6 +470,11 @@ animationStage.addEventListener("click", (event) => {
     state.previewRuntime.handleInteraction("click");
   }
 });
+
+previewCanvas.addEventListener("mousedown", handlePreviewCanvasPointerDown);
+previewCanvas.addEventListener("mousemove", handlePreviewCanvasPointerMove);
+previewCanvas.addEventListener("mouseleave", handlePreviewCanvasPointerLeave);
+window.addEventListener("mouseup", handlePreviewCanvasPointerUp);
 
 window.addEventListener("keydown", (event) => {
   if (!state.previewRuntime || !state.previewRuntime.active) {
@@ -593,23 +612,291 @@ function drawAnnotatedPreview() {
   previewContext.textBaseline = "top";
 
   state.zones.forEach((zone, index) => {
+    const isSelected = state.selectedZoneIds.includes(zone.id);
     previewContext.fillStyle = zone.animation.enabled
-      ? "rgba(217, 93, 57, 0.18)"
+      ? isSelected
+        ? "rgba(32, 100, 203, 0.18)"
+        : "rgba(217, 93, 57, 0.18)"
       : "rgba(31, 27, 22, 0.1)";
     previewContext.strokeStyle = zone.animation.enabled
-      ? "rgba(217, 93, 57, 0.95)"
+      ? isSelected
+        ? "rgba(32, 100, 203, 0.95)"
+        : "rgba(217, 93, 57, 0.95)"
       : "rgba(31, 27, 22, 0.35)";
     previewContext.fillRect(zone.x, zone.y, zone.width, zone.height);
     previewContext.strokeRect(zone.x, zone.y, zone.width, zone.height);
 
-    const label = `${index + 1}`;
+    const label = zone.locked ? `${index + 1} LOCK` : `${index + 1}`;
     previewContext.fillStyle = "rgba(31, 27, 22, 0.88)";
-    previewContext.fillRect(zone.x + 8, zone.y + 8, 36, 30);
+    previewContext.fillRect(zone.x + 8, zone.y + 8, zone.locked ? 82 : 36, 30);
     previewContext.fillStyle = "#fff";
     previewContext.fillText(label, zone.x + 17, zone.y + 13);
+
+    if (isSelected && !zone.locked) {
+      drawPreviewResizeHandles(zone);
+    }
   });
 
   previewContext.restore();
+}
+
+function drawPreviewResizeHandles(zone) {
+  const handles = getPreviewHandleRects(zone);
+  previewContext.save();
+  previewContext.fillStyle = "#ffffff";
+  previewContext.strokeStyle = "rgba(32, 100, 203, 0.95)";
+  previewContext.lineWidth = 2;
+  Object.values(handles).forEach((handle) => {
+    previewContext.fillRect(handle.x, handle.y, handle.size, handle.size);
+    previewContext.strokeRect(handle.x, handle.y, handle.size, handle.size);
+  });
+  previewContext.restore();
+}
+
+function handlePreviewCanvasPointerDown(event) {
+  if (!state.sourceImage || !state.zones.length) {
+    return;
+  }
+
+  const point = getCanvasPoint(event);
+  const handleHit = getPreviewHandleHit(point);
+  if (handleHit && !handleHit.zone.locked) {
+    if (state.selectedZoneId !== handleHit.zone.id) {
+      selectZone(handleHit.zone.id, event.ctrlKey || event.metaKey);
+    }
+    state.previewEdit = {
+      dragging: true,
+      zoneId: handleHit.zone.id,
+      handle: handleHit.handle,
+      startX: point.x,
+      startY: point.y,
+      startBox: {
+        x: handleHit.zone.x,
+        y: handleHit.zone.y,
+        width: handleHit.zone.width,
+        height: handleHit.zone.height,
+      },
+      pointerMoved: false,
+    };
+    event.preventDefault();
+    return;
+  }
+
+  const zone = findZoneAtCanvasPoint(point);
+  if (zone) {
+    selectZone(zone.id, event.ctrlKey || event.metaKey);
+    event.preventDefault();
+  }
+}
+
+function handlePreviewCanvasPointerMove(event) {
+  if (!state.sourceImage || !state.zones.length) {
+    return;
+  }
+
+  const point = getCanvasPoint(event);
+  if (state.previewEdit.dragging) {
+    const zone = state.zones.find((item) => item.id === state.previewEdit.zoneId);
+    if (!zone || zone.locked) {
+      resetPreviewEditState();
+      return;
+    }
+
+    const nextBox = computeResizedBox(state.previewEdit.startBox, state.previewEdit.handle, point.x - state.previewEdit.startX, point.y - state.previewEdit.startY);
+    zone.x = nextBox.x;
+    zone.y = nextBox.y;
+    zone.width = nextBox.width;
+    zone.height = nextBox.height;
+    zone.area = nextBox.width * nextBox.height;
+    state.previewEdit.pointerMoved = true;
+    drawAnnotatedPreview();
+    updateInspector();
+    return;
+  }
+
+  const handleHit = getPreviewHandleHit(point);
+  if (handleHit && !handleHit.zone.locked) {
+    previewCanvas.style.cursor = cursorForPreviewHandle(handleHit.handle);
+    return;
+  }
+
+  const zone = findZoneAtCanvasPoint(point);
+  previewCanvas.style.cursor = zone ? "pointer" : "default";
+}
+
+function handlePreviewCanvasPointerLeave() {
+  if (!state.previewEdit.dragging) {
+    previewCanvas.style.cursor = "default";
+  }
+}
+
+function handlePreviewCanvasPointerUp() {
+  if (!state.previewEdit.dragging) {
+    return;
+  }
+
+  const zone = state.zones.find((item) => item.id === state.previewEdit.zoneId);
+  const moved = state.previewEdit.pointerMoved;
+  resetPreviewEditState();
+  previewCanvas.style.cursor = "default";
+
+  if (!zone || !moved) {
+    drawAnnotatedPreview();
+    return;
+  }
+
+  refreshZoneAsset(zone);
+  drawAnnotatedPreview();
+  renderZones(state.zones);
+  renderAnimationStage();
+  updateInspector();
+  renderGroupsPanel();
+  renderZonesOrderPanel();
+  updateAnimationControlsState();
+}
+
+function toggleSelectedZoneLock() {
+  const zone = getSelectedZone();
+  if (!zone) {
+    return;
+  }
+  zone.locked = !zone.locked;
+  drawAnnotatedPreview();
+  renderZones(state.zones);
+  updateInspector();
+  updateAnimationControlsState();
+}
+
+function getCanvasPoint(event) {
+  const rect = previewCanvas.getBoundingClientRect();
+  const scaleX = previewCanvas.width / Math.max(rect.width, 1);
+  const scaleY = previewCanvas.height / Math.max(rect.height, 1);
+  return {
+    x: (event.clientX - rect.left) * scaleX,
+    y: (event.clientY - rect.top) * scaleY,
+  };
+}
+
+function getPreviewInteractionSize() {
+  const rect = previewCanvas.getBoundingClientRect();
+  const scale = previewCanvas.width / Math.max(rect.width, 1);
+  return Math.max(8, Math.round(10 * scale));
+}
+
+function getPreviewHandleRects(zone) {
+  const size = getPreviewInteractionSize();
+  const half = size / 2;
+  const centerX = zone.x + zone.width / 2;
+  const centerY = zone.y + zone.height / 2;
+  return {
+    nw: { x: zone.x - half, y: zone.y - half, size },
+    ne: { x: zone.x + zone.width - half, y: zone.y - half, size },
+    sw: { x: zone.x - half, y: zone.y + zone.height - half, size },
+    se: { x: zone.x + zone.width - half, y: zone.y + zone.height - half, size },
+    n: { x: centerX - half, y: zone.y - half, size },
+    s: { x: centerX - half, y: zone.y + zone.height - half, size },
+    w: { x: zone.x - half, y: centerY - half, size },
+    e: { x: zone.x + zone.width - half, y: centerY - half, size },
+  };
+}
+
+function getPreviewHandleHit(point) {
+  const zone = getSelectedZone();
+  if (!zone) {
+    return null;
+  }
+
+  const handles = getPreviewHandleRects(zone);
+  for (const [handle, rect] of Object.entries(handles)) {
+    if (point.x >= rect.x && point.x <= rect.x + rect.size && point.y >= rect.y && point.y <= rect.y + rect.size) {
+      return { zone, handle };
+    }
+  }
+  return null;
+}
+
+function findZoneAtCanvasPoint(point) {
+  const ordered = [...state.zones].sort((a, b) => (b.animation.order ?? 0) - (a.animation.order ?? 0));
+  return (
+    ordered.find(
+      (zone) =>
+        point.x >= zone.x &&
+        point.x <= zone.x + zone.width &&
+        point.y >= zone.y &&
+        point.y <= zone.y + zone.height
+    ) ?? null
+  );
+}
+
+function cursorForPreviewHandle(handle) {
+  if (handle === "n" || handle === "s") return "ns-resize";
+  if (handle === "e" || handle === "w") return "ew-resize";
+  if (handle === "nw" || handle === "se") return "nwse-resize";
+  return "nesw-resize";
+}
+
+function computeResizedBox(startBox, handle, deltaX, deltaY) {
+  const minSize = 16;
+  let left = startBox.x;
+  let top = startBox.y;
+  let right = startBox.x + startBox.width;
+  let bottom = startBox.y + startBox.height;
+
+  if (handle.includes("w")) {
+    left = clamp(left + deltaX, 0, right - minSize);
+  }
+  if (handle.includes("e")) {
+    right = clamp(right + deltaX, left + minSize, previewCanvas.width);
+  }
+  if (handle.includes("n")) {
+    top = clamp(top + deltaY, 0, bottom - minSize);
+  }
+  if (handle.includes("s")) {
+    bottom = clamp(bottom + deltaY, top + minSize, previewCanvas.height);
+  }
+
+  return {
+    x: Math.round(left),
+    y: Math.round(top),
+    width: Math.round(right - left),
+    height: Math.round(bottom - top),
+  };
+}
+
+function resetPreviewEditState() {
+  state.previewEdit = {
+    dragging: false,
+    zoneId: null,
+    handle: null,
+    startX: 0,
+    startY: 0,
+    startBox: null,
+    pointerMoved: false,
+  };
+}
+
+function refreshZoneAsset(zone) {
+  const rebuiltBox = enrichLocalZoneGeometry(
+    {
+      x: zone.x,
+      y: zone.y,
+      width: zone.width,
+      height: zone.height,
+      area: zone.width * zone.height,
+    },
+    zone
+  );
+  const rebuilt = createZoneAsset(rebuiltBox, 0, zone.animation);
+  zone.x = rebuilt.x;
+  zone.y = rebuilt.y;
+  zone.width = rebuilt.width;
+  zone.height = rebuilt.height;
+  zone.area = rebuilt.area;
+  zone.shape = rebuilt.shape;
+  zone.shapeConfidence = rebuilt.shapeConfidence;
+  zone.dataUrl = rebuilt.dataUrl;
+  zone.sourceWidth = rebuilt.sourceWidth;
+  zone.sourceHeight = rebuilt.sourceHeight;
 }
 
 function runDetection() {
@@ -643,7 +930,7 @@ function runDetection() {
         })
       : detectComponentZones(mask, width, height, { minArea, padding, mergeDistance });
 
-  const filtered = suppressContainedBoxes(boxes);
+  const filtered = suppressContainedBoxes(boxes).map((box) => enrichZoneGeometry(box, mask, width));
   state.zones = filtered
     .sort((a, b) => {
       if (Math.abs(a.y - b.y) > 20) {
@@ -651,7 +938,7 @@ function runDetection() {
       }
       return a.x - b.x;
     })
-    .map((box, index) => createZoneAsset(box, index));
+    .map((box, index) => createZoneAsset(box, index, null, { mask, imageWidth: width, threshold, background }));
 
   state.selectedZoneId = state.zones[0]?.id ?? null;
   state.selectedZoneIds = state.selectedZoneId ? [state.selectedZoneId] : [];
@@ -688,11 +975,11 @@ function runDetection() {
   );
 }
 
-function createZoneAsset(box, index, animationOverride = null) {
+function createZoneAsset(box, index, animationOverride = null, sourceContext = null) {
   const cropCanvas = document.createElement("canvas");
   cropCanvas.width = box.width;
   cropCanvas.height = box.height;
-  const cropContext = cropCanvas.getContext("2d");
+  const cropContext = cropCanvas.getContext("2d", { willReadFrequently: true });
   cropContext.clearRect(0, 0, cropCanvas.width, cropCanvas.height);
   cropContext.drawImage(
     state.sourceImage,
@@ -706,11 +993,18 @@ function createZoneAsset(box, index, animationOverride = null) {
     box.height
   );
 
+  if (box.shape === "round") {
+    applyRoundZoneTransparency(cropContext, cropCanvas.width, cropCanvas.height, box, sourceContext);
+  }
+
   return {
     ...box,
     id: makeId(index),
     fileName: `${state.imageName}-zone-${String(index + 1).padStart(2, "0")}.png`,
     dataUrl: cropCanvas.toDataURL("image/png"),
+    sourceWidth: cropCanvas.width,
+    sourceHeight: cropCanvas.height,
+    locked: false,
     subdivisionParent: null,
     subdivisionChildren: null,
     animation: animationOverride
@@ -765,7 +1059,7 @@ function renderZones(zones) {
     dimensions.textContent = `${zone.width} x ${zone.height} px`;
     position.textContent = `Origine: (${zone.x}, ${zone.y})`;
     step.textContent = zone.animation.enabled
-      ? `Etape ${zone.animation.step} • ${labelForEffect(zone.animation.effect)}`
+      ? `${zone.locked ? "Verrouillee • " : ""}Etape ${zone.animation.step} • ${labelForEffect(zone.animation.effect)}`
       : "Retiree de la slide";
 
     toggle.addEventListener("change", (event) => {
@@ -871,6 +1165,7 @@ function selectZone(zoneId, appendSelection = false) {
   updateInspector();
   renderGroupsPanel();
   renderZonesOrderPanel();
+  updateAnimationControlsState();
 }
 
 function updateInspector() {
@@ -886,7 +1181,7 @@ function updateInspector() {
   inspectorForm.classList.remove("hidden");
 
   selectedZoneTitle.textContent = zone.fileName;
-  selectedZoneMeta.textContent = `${zone.width} x ${zone.height} px • origine (${zone.x}, ${zone.y})`;
+  selectedZoneMeta.textContent = `${zone.width} x ${zone.height} px • origine (${zone.x}, ${zone.y})${zone.locked ? " • verrouillee" : ""}`;
   zoneEnabledCheckbox.checked = zone.animation.enabled;
   zoneStepInput.value = zone.animation.step;
   zoneEffectSelect.value = zone.animation.effect;
@@ -949,6 +1244,8 @@ function updateAnimationControlsState() {
 
   selectAllZonesButton.disabled = !hasZones;
   deselectAllZonesButton.disabled = !hasZones;
+  toggleZoneLockButton.disabled = !hasSelectedZone;
+  toggleZoneLockButton.textContent = selectedZone?.locked ? "Deverrouiller la zone" : "Verrouiller la zone";
   saveProjectButton.disabled = !state.sourceImage;
   playPreviewButton.disabled = !hasEnabledZones;
   resetPreviewButton.disabled = !hasZones;
@@ -1226,12 +1523,26 @@ function moveZoneOrder(zoneId, direction) {
   ordered.forEach((item, position) => {
     item.animation.order = position;
   });
+  syncGroupMemberOrderToZoneOrder();
 
   renderZones(state.zones);
   renderAnimationStage();
   renderZonesOrderPanel();
   renderGroupsPanel();
   updateInspector();
+  updateAnimationControlsState();
+}
+
+function syncGroupMemberOrderToZoneOrder() {
+  state.groups.forEach((group) => {
+    group.zoneIds.sort((a, b) => {
+      const zoneA = state.zones.find((zone) => zone.id === a);
+      const zoneB = state.zones.find((zone) => zone.id === b);
+      const orderA = zoneA?.animation.order ?? Number.MAX_SAFE_INTEGER;
+      const orderB = zoneB?.animation.order ?? Number.MAX_SAFE_INTEGER;
+      return orderA - orderB;
+    });
+  });
 }
 
 function applyPresentationPreset(mode) {
@@ -1637,7 +1948,8 @@ function subdivideSelectedZone(mode) {
     return;
   }
 
-  const replacementZones = subBoxes.map((box, index) => createZoneAsset(box, zoneIndex + index, zone.animation));
+  const enrichedBoxes = subBoxes.map((box) => enrichLocalZoneGeometry(box, zone));
+  const replacementZones = enrichedBoxes.map((box, index) => createZoneAsset(box, zoneIndex + index, zone.animation));
   const parentSnapshot = createSubdivisionParentSnapshot(zone, replacementZones.map((item) => item.id));
   replacementZones.forEach((item) => {
     item.subdivisionParent = { ...parentSnapshot };
@@ -1696,6 +2008,7 @@ function resetSubdivisionForSelection() {
 
   restoredZone.id = parent.id;
   restoredZone.fileName = parent.fileName;
+  restoredZone.locked = Boolean(parent.locked);
   restoredZone.subdivisionParent = parent.subdivisionParent ? { ...parent.subdivisionParent } : null;
 
   if (parent.animation.groupId) {
@@ -1737,6 +2050,7 @@ function createSubdivisionParentSnapshot(zone, childIds) {
     height: zone.height,
     area: zone.area ?? zone.width * zone.height,
     fileName: zone.fileName,
+    locked: Boolean(zone.locked),
     animation: { ...zone.animation },
     childIds,
     subdivisionParent: zone.subdivisionParent ? { ...zone.subdivisionParent } : null,
@@ -2005,6 +2319,133 @@ function splitRegionIntoFixedColumns(mask, width, height, data, background, colu
   }
 
   return boxes;
+}
+
+function enrichZoneGeometry(box, mask, imageWidth) {
+  const shape = inferZoneShape(box, mask, imageWidth);
+  return {
+    ...box,
+    shape: shape.kind,
+    shapeConfidence: shape.confidence,
+  };
+}
+
+function enrichLocalZoneGeometry(box, parentZone) {
+  const canvas = document.createElement("canvas");
+  canvas.width = box.width;
+  canvas.height = box.height;
+  const context = canvas.getContext("2d", { willReadFrequently: true });
+  context.drawImage(
+    state.sourceImage,
+    box.x,
+    box.y,
+    box.width,
+    box.height,
+    0,
+    0,
+    box.width,
+    box.height
+  );
+  const { data, width, height } = context.getImageData(0, 0, canvas.width, canvas.height);
+  const background = estimateBackgroundColor(data, width, height);
+  const threshold = Math.max(10, Number(thresholdRange.value) || 28);
+  const mask = buildForegroundMask(data, width, height, background, threshold);
+  return enrichZoneGeometry(box, mask, width);
+}
+
+function inferZoneShape(box, mask, imageWidth) {
+  const aspect = Math.min(box.width, box.height) / Math.max(box.width, box.height, 1);
+  if (aspect < 0.76 || box.width < 24 || box.height < 24) {
+    return { kind: "rect", confidence: 0 };
+  }
+
+  const fillRatio = countMaskPixelsInBox(mask, imageWidth, box.x, box.y, box.width, box.height) / Math.max(1, box.width * box.height);
+  if (fillRatio < 0.42 || fillRatio > 0.9) {
+    return { kind: "rect", confidence: 0 };
+  }
+
+  const cornerDensity = sampleMaskDensity(mask, imageWidth, box, "corners");
+  const centerDensity = sampleMaskDensity(mask, imageWidth, box, "center");
+  const roundScore =
+    (aspect - 0.76) / 0.24 +
+    clamp((0.9 - Math.abs(fillRatio - 0.72)) / 0.9, 0, 1) +
+    clamp(centerDensity, 0, 1) +
+    clamp(1 - cornerDensity, 0, 1);
+
+  if (centerDensity > 0.55 && cornerDensity < 0.38 && roundScore > 2.15) {
+    return { kind: "round", confidence: roundScore / 4 };
+  }
+
+  return { kind: "rect", confidence: 0 };
+}
+
+function sampleMaskDensity(mask, imageWidth, box, mode) {
+  const insetX = Math.max(2, Math.floor(box.width * 0.18));
+  const insetY = Math.max(2, Math.floor(box.height * 0.18));
+
+  if (mode === "center") {
+    const sampleWidth = Math.max(4, box.width - insetX * 2);
+    const sampleHeight = Math.max(4, box.height - insetY * 2);
+    return countMaskPixelsInBox(mask, imageWidth, box.x + insetX, box.y + insetY, sampleWidth, sampleHeight) / Math.max(1, sampleWidth * sampleHeight);
+  }
+
+  const cornerWidth = Math.max(4, Math.floor(box.width * 0.22));
+  const cornerHeight = Math.max(4, Math.floor(box.height * 0.22));
+  const corners = [
+    [box.x, box.y],
+    [box.x + box.width - cornerWidth, box.y],
+    [box.x, box.y + box.height - cornerHeight],
+    [box.x + box.width - cornerWidth, box.y + box.height - cornerHeight],
+  ];
+  const total = corners.reduce((sum, [x, y]) => {
+    return sum + countMaskPixelsInBox(mask, imageWidth, x, y, cornerWidth, cornerHeight) / Math.max(1, cornerWidth * cornerHeight);
+  }, 0);
+  return total / corners.length;
+}
+
+function applyRoundZoneTransparency(cropContext, cropWidth, cropHeight, box, sourceContext) {
+  const imageData = cropContext.getImageData(0, 0, cropWidth, cropHeight);
+  let localMask = null;
+
+  if (sourceContext?.mask && Number.isFinite(sourceContext?.imageWidth)) {
+    localMask = extractLocalMask(sourceContext.mask, sourceContext.imageWidth, box);
+  }
+
+  if (!localMask) {
+    const background = sourceContext?.background ?? estimateBackgroundColor(imageData.data, cropWidth, cropHeight);
+    const threshold = sourceContext?.threshold ?? Math.max(10, Number(thresholdRange.value) || 28);
+    localMask = buildForegroundMask(imageData.data, cropWidth, cropHeight, background, threshold);
+  }
+
+  const centerX = (cropWidth - 1) / 2;
+  const centerY = (cropHeight - 1) / 2;
+  const radiusX = Math.max(1, cropWidth / 2 - 1);
+  const radiusY = Math.max(1, cropHeight / 2 - 1);
+
+  for (let y = 0; y < cropHeight; y += 1) {
+    for (let x = 0; x < cropWidth; x += 1) {
+      const index = y * cropWidth + x;
+      if (!localMask[index]) {
+        const dx = (x - centerX) / radiusX;
+        const dy = (y - centerY) / radiusY;
+        if (dx * dx + dy * dy >= 0.92) {
+          imageData.data[index * 4 + 3] = 0;
+        }
+      }
+    }
+  }
+
+  cropContext.putImageData(imageData, 0, 0);
+}
+
+function extractLocalMask(globalMask, imageWidth, box) {
+  const localMask = new Uint8Array(box.width * box.height);
+  for (let y = 0; y < box.height; y += 1) {
+    for (let x = 0; x < box.width; x += 1) {
+      localMask[y * box.width + x] = globalMask[(box.y + y) * imageWidth + (box.x + x)];
+    }
+  }
+  return localMask;
 }
 
 function chooseEvenlyDistributedSeparators(centers, wantedCount, width) {
@@ -2283,6 +2724,11 @@ function serializeZoneForProject(zone) {
     id: zone.id,
     fileName: zone.fileName,
     dataUrl: zone.dataUrl,
+    sourceWidth: zone.sourceWidth ?? zone.width,
+    sourceHeight: zone.sourceHeight ?? zone.height,
+    shape: zone.shape ?? "rect",
+    shapeConfidence: zone.shapeConfidence ?? 0,
+    locked: Boolean(zone.locked),
     subdivisionParent: zone.subdivisionParent ? structuredCloneProjectData(zone.subdivisionParent) : null,
     subdivisionChildren: zone.subdivisionChildren ? structuredCloneProjectData(zone.subdivisionChildren) : null,
     animation: structuredCloneProjectData(zone.animation),
@@ -2437,6 +2883,11 @@ function normalizeProjectZone(zone, index) {
     id: typeof zone?.id === "string" && zone.id ? zone.id : makeId(index),
     fileName: zone?.fileName || `${state.imageName}-zone-${String(index + 1).padStart(2, "0")}.png`,
     dataUrl: zone?.dataUrl || "",
+    sourceWidth: Math.max(1, Number(zone?.sourceWidth) || Number(zone?.width) || 1),
+    sourceHeight: Math.max(1, Number(zone?.sourceHeight) || Number(zone?.height) || 1),
+    shape: zone?.shape === "round" ? "round" : "rect",
+    shapeConfidence: clamp(Number(zone?.shapeConfidence) || 0, 0, 1.5),
+    locked: Boolean(zone?.locked),
     subdivisionParent: zone?.subdivisionParent ? structuredCloneProjectData(zone.subdivisionParent) : null,
     subdivisionChildren: zone?.subdivisionChildren ? structuredCloneProjectData(zone.subdivisionChildren) : null,
     animation: {
@@ -2505,7 +2956,14 @@ function resolveZoneAnimationForExport(zone) {
     return animation;
   }
 
-  const index = Math.max(0, group.zoneIds.indexOf(zone.id));
+  const orderedZoneIds = [...group.zoneIds].sort((a, b) => {
+    const zoneA = state.zones.find((item) => item.id === a);
+    const zoneB = state.zones.find((item) => item.id === b);
+    const orderA = zoneA?.animation.order ?? Number.MAX_SAFE_INTEGER;
+    const orderB = zoneB?.animation.order ?? Number.MAX_SAFE_INTEGER;
+    return orderA - orderB;
+  });
+  const index = Math.max(0, orderedZoneIds.indexOf(zone.id));
   animation.step = group.step;
   animation.delay = Math.max(0, animation.delay) + Math.max(0, group.stagger) * index;
   return animation;
