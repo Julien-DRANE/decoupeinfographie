@@ -313,7 +313,7 @@
             </div>
           </div>
           <div class="under-stage-grid">
-            <section class="under-stage-card">
+            <section class="under-stage-card groups-stage-card">
               <div class="panel-header">
                 <div>
                   <h2>Evenements d'apparition</h2>
@@ -335,21 +335,21 @@
               </div>
             </section>
 
-            <section class="under-stage-card">
+            <section class="under-stage-card order-stage-card">
               <div class="panel-header">
                 <div>
                   <h2>Ordre des zones</h2>
-                  <p>Reordonner les elements avec poignees visuelles pour la narration.</p>
+                  <p>Glisse les zones par leur poignee pour reorganiser la narration plus vite.</p>
                 </div>
               </div>
-              <div id="zonesOrderList" class="groups-list">
+              <div id="zonesOrderList" class="groups-list zones-order-list">
                 <article class="empty-state">
                   La liste des zones apparaitra ici apres detection.
                 </article>
               </div>
             </section>
 
-            <section class="under-stage-card">
+            <section class="under-stage-card presets-stage-card">
               <div class="panel-header">
                 <div>
                   <h2>Presets de presentation</h2>
@@ -403,7 +403,7 @@
               <p id="selectedZoneMeta"></p>
             </div>
 
-            <div class="status-card selected-card">
+            <div class="status-card selected-card inspector-tools-card">
               <h3>Double analyse</h3>
               <div class="zone-card-actions compact-actions">
                 <button id="splitZoneAutoButton" class="btn btn-secondary">
@@ -437,82 +437,84 @@
               </p>
             </div>
 
-            <div class="control-group">
-              <label class="toggle-line" for="zoneEnabledCheckbox">
-                <span>Inclure cette zone dans l'animation</span>
-                <input id="zoneEnabledCheckbox" type="checkbox" />
-              </label>
-            </div>
+            <div class="inspector-controls-grid">
+              <div class="control-group inspector-control control-span-2">
+                <label class="toggle-line" for="zoneEnabledCheckbox">
+                  <span>Inclure cette zone dans l'animation</span>
+                  <input id="zoneEnabledCheckbox" type="checkbox" />
+                </label>
+              </div>
 
-            <div class="control-group">
-              <label for="zoneStepInput">Etape de revelation</label>
-              <input id="zoneStepInput" class="number-control" type="number" min="1" step="1" />
-            </div>
+              <div class="control-group inspector-control">
+                <label for="zoneStepInput">Etape de revelation</label>
+                <input id="zoneStepInput" class="number-control" type="number" min="1" step="1" />
+              </div>
 
-            <div class="control-group">
-              <label for="zoneEffectSelect">Effet d'entree</label>
-              <select id="zoneEffectSelect" class="select-control">
-                <option value="fade">Fondu net</option>
-                <option value="fade-up">Fondu depuis le bas</option>
-                <option value="fade-down">Fondu depuis le haut</option>
-                <option value="fade-left">Fondu depuis la gauche</option>
-                <option value="fade-right">Fondu depuis la droite</option>
-                <option value="zoom">Zoom doux</option>
-                <option value="pop">Pop subtil</option>
-                <option value="mist-left">Brume laterale gauche</option>
-                <option value="mist-right">Brume laterale droite</option>
-                <option value="mist-up">Brume montante</option>
-                <option value="drift-left">Glissement feutre gauche</option>
-                <option value="drift-right">Glissement feutre droite</option>
-              </select>
-            </div>
+              <div class="control-group inspector-control">
+                <label for="zoneEffectSelect">Effet d'entree</label>
+                <select id="zoneEffectSelect" class="select-control">
+                  <option value="fade">Fondu net</option>
+                  <option value="fade-up">Fondu depuis le bas</option>
+                  <option value="fade-down">Fondu depuis le haut</option>
+                  <option value="fade-left">Fondu depuis la gauche</option>
+                  <option value="fade-right">Fondu depuis la droite</option>
+                  <option value="zoom">Zoom doux</option>
+                  <option value="pop">Pop subtil</option>
+                  <option value="mist-left">Brume laterale gauche</option>
+                  <option value="mist-right">Brume laterale droite</option>
+                  <option value="mist-up">Brume montante</option>
+                  <option value="drift-left">Glissement feutre gauche</option>
+                  <option value="drift-right">Glissement feutre droite</option>
+                </select>
+              </div>
 
-            <div class="control-group">
-              <label for="zoneDurationRange">
-                Duree
-                <strong id="zoneDurationValue">700 ms</strong>
-              </label>
-              <input id="zoneDurationRange" type="range" min="100" max="4000" step="20" value="700" />
-            </div>
+              <div class="control-group inspector-control">
+                <label for="zoneDurationRange">
+                  Duree
+                  <strong id="zoneDurationValue">700 ms</strong>
+                </label>
+                <input id="zoneDurationRange" type="range" min="100" max="4000" step="20" value="700" />
+              </div>
 
-            <div class="control-group">
-              <label for="zoneDelayRange">
-                Delai interne
-                <strong id="zoneDelayValue">0 ms</strong>
-              </label>
-              <input id="zoneDelayRange" type="range" min="0" max="2500" step="20" value="0" />
-            </div>
+              <div class="control-group inspector-control">
+                <label for="zoneDelayRange">
+                  Delai interne
+                  <strong id="zoneDelayValue">0 ms</strong>
+                </label>
+                <input id="zoneDelayRange" type="range" min="0" max="2500" step="20" value="0" />
+              </div>
 
-            <div class="control-group">
-              <label for="zoneOffsetXRange">
-                Decalage horizontal
-                <strong id="zoneOffsetXValue">0 px</strong>
-              </label>
-              <input id="zoneOffsetXRange" type="range" min="-240" max="240" step="2" value="0" />
-            </div>
+              <div class="control-group inspector-control">
+                <label for="zoneOffsetXRange">
+                  Decalage horizontal
+                  <strong id="zoneOffsetXValue">0 px</strong>
+                </label>
+                <input id="zoneOffsetXRange" type="range" min="-240" max="240" step="2" value="0" />
+              </div>
 
-            <div class="control-group">
-              <label for="zoneOffsetYRange">
-                Decalage vertical
-                <strong id="zoneOffsetYValue">24 px</strong>
-              </label>
-              <input id="zoneOffsetYRange" type="range" min="-240" max="240" step="2" value="24" />
-            </div>
+              <div class="control-group inspector-control">
+                <label for="zoneOffsetYRange">
+                  Decalage vertical
+                  <strong id="zoneOffsetYValue">24 px</strong>
+                </label>
+                <input id="zoneOffsetYRange" type="range" min="-240" max="240" step="2" value="24" />
+              </div>
 
-            <div class="control-group">
-              <label for="zoneScaleRange">
-                Echelle de depart
-                <strong id="zoneScaleValue">96 %</strong>
-              </label>
-              <input id="zoneScaleRange" type="range" min="40" max="140" step="1" value="96" />
-            </div>
+              <div class="control-group inspector-control">
+                <label for="zoneScaleRange">
+                  Echelle de depart
+                  <strong id="zoneScaleValue">96 %</strong>
+                </label>
+                <input id="zoneScaleRange" type="range" min="40" max="140" step="1" value="96" />
+              </div>
 
-            <div class="control-group">
-              <label for="zoneRotateRange">
-                Rotation de depart
-                <strong id="zoneRotateValue">0 deg</strong>
-              </label>
-              <input id="zoneRotateRange" type="range" min="-45" max="45" step="1" value="0" />
+              <div class="control-group inspector-control">
+                <label for="zoneRotateRange">
+                  Rotation de depart
+                  <strong id="zoneRotateValue">0 deg</strong>
+                </label>
+                <input id="zoneRotateRange" type="range" min="-45" max="45" step="1" value="0" />
+              </div>
             </div>
           </div>
         </aside>

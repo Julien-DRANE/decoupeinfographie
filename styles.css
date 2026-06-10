@@ -70,9 +70,30 @@ body {
 
 .editor-grid {
   display: grid;
-  grid-template-columns: minmax(280px, 340px) minmax(0, 1fr) minmax(280px, 340px);
+  grid-template-columns: minmax(270px, 320px) minmax(0, 1fr) minmax(300px, 360px);
+  grid-template-areas:
+    "animation stage inspector";
   gap: 20px;
   margin-top: 20px;
+  align-items: start;
+}
+
+.animation-panel {
+  grid-area: animation;
+}
+
+.animation-stage-panel {
+  grid-area: stage;
+  min-width: 0;
+}
+
+.inspector-panel {
+  grid-area: inspector;
+  position: sticky;
+  top: 18px;
+  align-self: start;
+  max-height: calc(100vh - 36px);
+  overflow: auto;
 }
 
 .panel {
@@ -246,6 +267,67 @@ input[type="range"] {
   margin-top: 16px;
 }
 
+.inspector-panel {
+  padding: 18px;
+}
+
+.inspector-panel .panel-header {
+  margin-bottom: 10px;
+}
+
+.inspector-form {
+  display: grid;
+  gap: 14px;
+}
+
+.inspector-panel .status-card {
+  margin-top: 0;
+  padding: 14px;
+}
+
+.inspector-panel .summary {
+  font-size: 0.88rem;
+}
+
+.inspector-tools-card .compact-actions {
+  margin-top: 10px;
+  gap: 8px;
+}
+
+.inspector-tools-card .btn {
+  padding: 10px 12px;
+  border-radius: 12px;
+}
+
+.inspector-controls-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.inspector-control {
+  margin-top: 0;
+  padding: 12px 14px;
+  border-radius: 18px;
+  border: 1px solid rgba(31, 27, 22, 0.08);
+  background: rgba(255, 255, 255, 0.72);
+}
+
+.inspector-control label {
+  margin-bottom: 8px;
+  font-size: 0.9rem;
+}
+
+.inspector-control .select-control,
+.inspector-control .number-control {
+  padding: 11px 12px;
+  border-radius: 14px;
+}
+
+.control-span-2 {
+  grid-column: 1 / -1;
+}
+
 .stage-wrapper,
 .animation-stage-wrap {
   display: flex;
@@ -285,9 +367,10 @@ input[type="range"] {
 
 .under-stage-grid {
   display: grid;
-  grid-template-columns: 1.2fr 1fr 1fr;
+  grid-template-columns: minmax(0, 1.1fr) minmax(0, 0.9fr);
   gap: 16px;
   margin-top: 18px;
+  align-items: start;
 }
 
 .under-stage-card {
@@ -295,6 +378,10 @@ input[type="range"] {
   border-radius: 22px;
   border: 1px solid rgba(31, 27, 22, 0.08);
   background: var(--panel-strong);
+}
+
+.presets-stage-card {
+  grid-column: 1 / -1;
 }
 
 .animation-stage {
@@ -552,23 +639,162 @@ input[type="range"] {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
-  padding: 10px 12px;
-  border-radius: 14px;
-  background: rgba(31, 27, 22, 0.04);
+  gap: 14px;
+  padding: 12px 14px;
+  border-radius: 18px;
+  border: 1px solid rgba(31, 27, 22, 0.08);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.84) 0%, rgba(250, 243, 233, 0.94) 100%);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.7);
+  transition:
+    transform 140ms ease,
+    border-color 140ms ease,
+    box-shadow 140ms ease,
+    background-color 140ms ease;
+}
+
+.zone-order-row:hover {
+  transform: translateY(-1px);
+  border-color: rgba(217, 93, 57, 0.22);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.78),
+    0 12px 28px rgba(73, 42, 11, 0.08);
+}
+
+.zone-order-row.selected {
+  border-color: rgba(32, 100, 203, 0.34);
+  box-shadow:
+    inset 0 0 0 2px rgba(32, 100, 203, 0.14),
+    0 12px 28px rgba(32, 100, 203, 0.08);
+}
+
+.zone-order-row.inactive {
+  opacity: 0.68;
+}
+
+.zone-order-row.drag-source {
+  opacity: 0.38;
+}
+
+.zone-order-row.drop-before {
+  box-shadow:
+    inset 0 4px 0 rgba(217, 93, 57, 0.9),
+    0 12px 28px rgba(73, 42, 11, 0.08);
+}
+
+.zone-order-row.drop-after {
+  box-shadow:
+    inset 0 -4px 0 rgba(217, 93, 57, 0.9),
+    0 12px 28px rgba(73, 42, 11, 0.08);
+}
+
+.zones-order-list.drag-active .zone-order-row {
+  cursor: default;
 }
 
 .zone-order-main {
-  display: inline-flex;
+  display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 12px;
+  min-width: 0;
+  flex: 1;
+}
+
+.zone-order-handle {
+  display: grid;
+  gap: 4px;
+  width: 38px;
+  min-width: 38px;
+  padding: 8px 7px;
+  border: 0;
+  border-radius: 12px;
+  background: rgba(31, 27, 22, 0.06);
+  cursor: grab;
+}
+
+.zone-order-handle:active {
+  cursor: grabbing;
+}
+
+.zone-order-handle span {
+  display: block;
+  width: 100%;
+  height: 3px;
+  border-radius: 999px;
+  background: rgba(31, 27, 22, 0.45);
+}
+
+.zone-order-thumb {
+  width: 72px;
+  height: 72px;
+  flex: 0 0 72px;
+  padding: 7px;
+  border-radius: 16px;
+  border: 1px solid rgba(31, 27, 22, 0.08);
+  background:
+    linear-gradient(45deg, rgba(31, 27, 22, 0.04) 25%, transparent 25%),
+    linear-gradient(-45deg, rgba(31, 27, 22, 0.04) 25%, transparent 25%),
+    linear-gradient(45deg, transparent 75%, rgba(31, 27, 22, 0.04) 75%),
+    linear-gradient(-45deg, transparent 75%, rgba(31, 27, 22, 0.04) 75%),
+    rgba(255, 255, 255, 0.82);
+  background-size: 18px 18px;
+  background-position:
+    0 0,
+    0 9px,
+    9px -9px,
+    -9px 0;
+  object-fit: contain;
+}
+
+.zone-order-copy {
   min-width: 0;
 }
 
+.zone-order-label {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 3px;
+  min-width: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--ink);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.zone-order-label strong {
+  font-size: 1rem;
+  font-weight: 700;
+}
+
+.zone-order-label span {
+  display: block;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .zone-order-meta {
-  margin: 0;
+  margin: 6px 0 0;
   color: var(--muted);
   font-size: 0.82rem;
+  line-height: 1.4;
+}
+
+.zone-order-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 52px;
+  padding: 10px 12px;
+  border-radius: 14px;
+  background: rgba(217, 93, 57, 0.12);
+  color: var(--accent-dark);
+  font-weight: 700;
+  font-size: 1rem;
 }
 
 .effect-pill {
@@ -640,10 +866,24 @@ input[type="range"] {
 @media (max-width: 1180px) {
   .editor-grid {
     grid-template-columns: 1fr;
+    grid-template-areas:
+      "animation"
+      "stage"
+      "inspector";
+  }
+
+  .inspector-panel {
+    position: static;
+    max-height: none;
+    overflow: visible;
   }
 
   .under-stage-grid {
     grid-template-columns: 1fr;
+  }
+
+  .presets-stage-card {
+    grid-column: auto;
   }
 }
 
@@ -687,5 +927,23 @@ input[type="range"] {
   .zones-actions,
   .zone-card-actions {
     flex-direction: column;
+  }
+
+  .inspector-controls-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .control-span-2 {
+    grid-column: auto;
+  }
+
+  .zone-order-row {
+    align-items: flex-start;
+  }
+
+  .zone-order-thumb {
+    width: 60px;
+    height: 60px;
+    flex-basis: 60px;
   }
 }

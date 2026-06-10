@@ -104,6 +104,11 @@ const state = {
     createMode: false,
     draftBox: null,
   },
+  zoneOrderDrag: {
+    zoneId: null,
+    overZoneId: null,
+    placement: "before",
+  },
 };
 
 const imageInput = document.querySelector("#imageInput");
@@ -482,6 +487,8 @@ animationStage.addEventListener("click", (event) => {
 previewCanvas.addEventListener("mousedown", handlePreviewCanvasPointerDown);
 previewCanvas.addEventListener("mousemove", handlePreviewCanvasPointerMove);
 previewCanvas.addEventListener("mouseleave", handlePreviewCanvasPointerLeave);
+zonesOrderList.addEventListener("dragover", handleZoneOrderListDragOver);
+zonesOrderList.addEventListener("drop", handleZoneOrderListDrop);
 window.addEventListener("mouseup", handlePreviewCanvasPointerUp);
 
 window.addEventListener("keydown", (event) => {
@@ -645,6 +652,10 @@ function drawAnnotatedPreview() {
     }
   });
 
+  if (!state.previewEdit.createMode) {
+    drawPreviewDeleteAction();
+  }
+
   if (state.previewEdit.createMode && state.previewEdit.draftBox) {
     drawDraftPreviewBox(state.previewEdit.draftBox);
   }
@@ -676,6 +687,26 @@ function drawDraftPreviewBox(box) {
   previewContext.restore();
 }
 
+function drawPreviewDeleteAction() {
+  const rect = getPreviewDeleteActionRect();
+  if (!rect) {
+    return;
+  }
+
+  previewContext.save();
+  previewContext.fillStyle = "rgba(31, 27, 22, 0.9)";
+  previewContext.strokeStyle = "rgba(255, 255, 255, 0.6)";
+  previewContext.lineWidth = 1;
+  drawRoundedRect(previewContext, rect.x, rect.y, rect.width, rect.height, 16);
+  previewContext.fill();
+  previewContext.stroke();
+  previewContext.fillStyle = "#fff";
+  previewContext.font = "600 15px 'Space Grotesk', sans-serif";
+  previewContext.textBaseline = "middle";
+  previewContext.fillText(rect.label, rect.x + 16, rect.y + rect.height / 2);
+  previewContext.restore();
+}
+
 function handlePreviewCanvasPointerDown(event) {
   if (!state.sourceImage || !state.zones.length) {
     if (!state.sourceImage) {
@@ -684,6 +715,15 @@ function handlePreviewCanvasPointerDown(event) {
   }
 
   const point = getCanvasPoint(event);
+
+  if (!state.previewEdit.createMode) {
+    const deleteActionRect = getPreviewDeleteActionRect();
+    if (deleteActionRect && isPointInRect(point, deleteActionRect)) {
+      deleteSelectedZones();
+      event.preventDefault();
+      return;
+    }
+  }
 
   if (state.previewEdit.createMode) {
     state.previewEdit.dragging = true;
@@ -767,6 +807,12 @@ function handlePreviewCanvasPointerMove(event) {
     state.previewEdit.pointerMoved = true;
     drawAnnotatedPreview();
     updateInspector();
+    return;
+  }
+
+  const deleteActionRect = !state.previewEdit.createMode ? getPreviewDeleteActionRect() : null;
+  if (deleteActionRect && isPointInRect(point, deleteActionRect)) {
+    previewCanvas.style.cursor = "pointer";
     return;
   }
 
@@ -904,6 +950,46 @@ function getPreviewHandleRects(zone) {
   };
 }
 
+function getSelectedZonesBounds() {
+  const zones = getSelectedZones();
+  if (!zones.length) {
+    return null;
+  }
+
+  const left = Math.min(...zones.map((zone) => zone.x));
+  const top = Math.min(...zones.map((zone) => zone.y));
+  const right = Math.max(...zones.map((zone) => zone.x + zone.width));
+  const bottom = Math.max(...zones.map((zone) => zone.y + zone.height));
+
+  return {
+    x: left,
+    y: top,
+    width: right - left,
+    height: bottom - top,
+  };
+}
+
+function getPreviewDeleteActionRect() {
+  const bounds = getSelectedZonesBounds();
+  if (!bounds) {
+    return null;
+  }
+
+  const label = state.selectedZoneIds.length > 1 ? "Supprimer la selection" : "Supprimer";
+  const width = state.selectedZoneIds.length > 1 ? 188 : 120;
+  const height = 34;
+  const margin = 8;
+  const preferredY = bounds.y >= height + margin * 2 ? bounds.y - height - margin : bounds.y + margin;
+
+  return {
+    x: clamp(bounds.x + bounds.width - width, margin, previewCanvas.width - width - margin),
+    y: clamp(preferredY, margin, previewCanvas.height - height - margin),
+    width,
+    height,
+    label,
+  };
+}
+
 function getPreviewHandleHit(point) {
   const zone = getSelectedZone();
   if (!zone) {
@@ -937,6 +1023,30 @@ function cursorForPreviewHandle(handle) {
   if (handle === "e" || handle === "w") return "ew-resize";
   if (handle === "nw" || handle === "se") return "nwse-resize";
   return "nesw-resize";
+}
+
+function isPointInRect(point, rect) {
+  return (
+    point.x >= rect.x &&
+    point.x <= rect.x + rect.width &&
+    point.y >= rect.y &&
+    point.y <= rect.y + rect.height
+  );
+}
+
+function drawRoundedRect(context, x, y, width, height, radius) {
+  const safeRadius = Math.min(radius, width / 2, height / 2);
+  context.beginPath();
+  context.moveTo(x + safeRadius, y);
+  context.lineTo(x + width - safeRadius, y);
+  context.quadraticCurveTo(x + width, y, x + width, y + safeRadius);
+  context.lineTo(x + width, y + height - safeRadius);
+  context.quadraticCurveTo(x + width, y + height, x + width - safeRadius, y + height);
+  context.lineTo(x + safeRadius, y + height);
+  context.quadraticCurveTo(x, y + height, x, y + height - safeRadius);
+  context.lineTo(x, y + safeRadius);
+  context.quadraticCurveTo(x, y, x + safeRadius, y);
+  context.closePath();
 }
 
 function computeResizedBox(startBox, handle, deltaX, deltaY) {
@@ -1033,6 +1143,48 @@ function createManualZone(box) {
   renderZonesOrderPanel();
   updateAnimationControlsState();
   setStatus("Zone ajoutee manuellement.", `${zone.width} x ${zone.height} px • origine (${zone.x}, ${zone.y})`);
+}
+
+function deleteSelectedZones() {
+  const zoneIds = [...state.selectedZoneIds];
+  if (!zoneIds.length) {
+    return;
+  }
+
+  const orderedIds = getZonesInOrder().map((zone) => zone.id);
+  const firstDeletedIndex = orderedIds.findIndex((id) => zoneIds.includes(id));
+
+  zoneIds.forEach((zoneId) => {
+    removeZoneFromAnyGroup(zoneId, false);
+  });
+
+  state.zones = state.zones.filter((zone) => !zoneIds.includes(zone.id));
+  normalizeZoneOrder();
+
+  const remainingOrdered = getZonesInOrder();
+  const nextZone =
+    remainingOrdered[firstDeletedIndex] ??
+    remainingOrdered[Math.max(0, firstDeletedIndex - 1)] ??
+    null;
+
+  state.selectedZoneId = nextZone?.id ?? null;
+  state.selectedZoneIds = nextZone ? [nextZone.id] : [];
+  state.stepEditor.step = nextZone?.animation.step ?? 1;
+  downloadAllButton.disabled = state.zones.length === 0;
+
+  drawAnnotatedPreview();
+  renderZones(state.zones);
+  renderAnimationStage();
+  updateInspector();
+  loadStepEditorFromZones(true);
+  renderGroupsPanel();
+  renderZonesOrderPanel();
+  updateAnimationControlsState();
+
+  setStatus(
+    zoneIds.length > 1 ? "Selection supprimee." : "Zone supprimee.",
+    `${state.zones.length} zone(s) restante(s) dans le projet.`
+  );
 }
 
 function runDetection() {
@@ -1586,46 +1738,96 @@ function renderZonesOrderPanel() {
   getZonesInOrder().forEach((zone, index) => {
     const row = document.createElement("div");
     row.className = "zone-order-row";
+    row.dataset.zoneId = zone.id;
+    if (state.selectedZoneIds.includes(zone.id)) {
+      row.classList.add("selected");
+    }
+    if (!zone.animation.enabled) {
+      row.classList.add("inactive");
+    }
+    if (state.zoneOrderDrag.zoneId === zone.id) {
+      row.classList.add("drag-source");
+    }
+    if (state.zoneOrderDrag.overZoneId === zone.id) {
+      row.classList.add(state.zoneOrderDrag.placement === "after" ? "drop-after" : "drop-before");
+    }
+    row.addEventListener("dragover", (event) => {
+      if (!state.zoneOrderDrag.zoneId || state.zoneOrderDrag.zoneId === zone.id) {
+        return;
+      }
+      event.preventDefault();
+      const placement = getZoneOrderDropPlacement(event, row);
+      state.zoneOrderDrag.overZoneId = zone.id;
+      state.zoneOrderDrag.placement = placement;
+      updateZoneOrderDropIndicator();
+    });
+    row.addEventListener("drop", (event) => {
+      if (!state.zoneOrderDrag.zoneId || state.zoneOrderDrag.zoneId === zone.id) {
+        return;
+      }
+      event.preventDefault();
+      const placement = getZoneOrderDropPlacement(event, row);
+      moveZoneOrderToTarget(state.zoneOrderDrag.zoneId, zone.id, placement);
+      resetZoneOrderDragState();
+    });
+    row.addEventListener("click", () => {
+      selectZone(zone.id);
+    });
 
     const main = document.createElement("div");
     main.className = "zone-order-main";
 
-    const handle = document.createElement("span");
-    handle.className = "member-handle";
-    handle.textContent = ":::";
+    const handle = document.createElement("button");
+    handle.type = "button";
+    handle.className = "zone-order-handle";
+    handle.draggable = true;
+    handle.setAttribute("aria-label", `Glisser pour deplacer la zone ${index + 1}`);
+    handle.innerHTML = "<span></span><span></span><span></span>";
+    handle.addEventListener("click", (event) => {
+      event.stopPropagation();
+    });
+    handle.addEventListener("dragstart", (event) => {
+      state.zoneOrderDrag.zoneId = zone.id;
+      state.zoneOrderDrag.overZoneId = null;
+      state.zoneOrderDrag.placement = "before";
+      if (event.dataTransfer) {
+        event.dataTransfer.effectAllowed = "move";
+        event.dataTransfer.setData("text/plain", zone.id);
+      }
+      row.classList.add("drag-source");
+      zonesOrderList.classList.add("drag-active");
+    });
+    handle.addEventListener("dragend", () => {
+      resetZoneOrderDragState();
+    });
+
+    const thumb = document.createElement("img");
+    thumb.className = "zone-order-thumb";
+    thumb.src = zone.dataUrl;
+    thumb.alt = zone.fileName;
 
     const labelWrap = document.createElement("div");
+    labelWrap.className = "zone-order-copy";
+
     const button = document.createElement("button");
-    button.className = "mini-btn member-label";
-    button.textContent = `${index + 1}. ${zone.fileName}`;
+    button.className = "zone-order-label";
+    button.innerHTML = `<strong>Zone ${index + 1}</strong>`;
     button.addEventListener("click", () => {
       selectZone(zone.id);
     });
 
     const meta = document.createElement("p");
     meta.className = "zone-order-meta";
-    meta.textContent = `Etape ${zone.animation.step} • ${labelForEffect(zone.animation.effect)}`;
+    meta.textContent = `Etape ${zone.animation.step} • ${labelForEffect(zone.animation.effect)} • ${zone.width} x ${zone.height} px`;
 
     labelWrap.append(button, meta);
-    main.append(handle, labelWrap);
+    main.append(handle, thumb, labelWrap);
 
-    const controls = document.createElement("div");
-    controls.className = "member-buttons";
+    const badge = document.createElement("div");
+    badge.className = "zone-order-badge";
+    badge.textContent = zone.animation.enabled ? `${index + 1}` : "Off";
 
-    const upButton = document.createElement("button");
-    upButton.className = "mini-btn";
-    upButton.textContent = "↑";
-    upButton.disabled = index === 0;
-    upButton.addEventListener("click", () => moveZoneOrder(zone.id, -1));
-
-    const downButton = document.createElement("button");
-    downButton.className = "mini-btn";
-    downButton.textContent = "↓";
-    downButton.disabled = index === state.zones.length - 1;
-    downButton.addEventListener("click", () => moveZoneOrder(zone.id, 1));
-
-    controls.append(upButton, downButton);
-    row.append(main, controls);
+    row.append(main, badge);
     fragment.append(row);
   });
 
@@ -1667,6 +1869,104 @@ function moveZoneOrder(zoneId, direction) {
   renderGroupsPanel();
   updateInspector();
   updateAnimationControlsState();
+}
+
+function moveZoneOrderToTarget(draggedZoneId, targetZoneId, placement = "before") {
+  const ordered = getZonesInOrder();
+  const draggedIndex = ordered.findIndex((zone) => zone.id === draggedZoneId);
+  if (draggedIndex < 0) {
+    return;
+  }
+
+  const [draggedZone] = ordered.splice(draggedIndex, 1);
+  const targetIndex = ordered.findIndex((zone) => zone.id === targetZoneId);
+  if (targetIndex < 0) {
+    ordered.push(draggedZone);
+  } else {
+    const insertionIndex = placement === "after" ? targetIndex + 1 : targetIndex;
+    ordered.splice(insertionIndex, 0, draggedZone);
+  }
+
+  ordered.forEach((zone, index) => {
+    zone.animation.order = index;
+  });
+  syncGroupMemberOrderToZoneOrder();
+  renderZones(state.zones);
+  renderAnimationStage();
+  renderZonesOrderPanel();
+  renderGroupsPanel();
+  updateInspector();
+  updateAnimationControlsState();
+}
+
+function handleZoneOrderListDragOver(event) {
+  if (!state.zoneOrderDrag.zoneId) {
+    return;
+  }
+  event.preventDefault();
+}
+
+function handleZoneOrderListDrop(event) {
+  if (!state.zoneOrderDrag.zoneId) {
+    return;
+  }
+
+  const row = event.target.closest(".zone-order-row");
+  if (row) {
+    return;
+  }
+
+  event.preventDefault();
+  moveZoneOrderToEnd(state.zoneOrderDrag.zoneId);
+  resetZoneOrderDragState();
+}
+
+function moveZoneOrderToEnd(zoneId) {
+  const ordered = getZonesInOrder().filter((zone) => zone.id !== zoneId);
+  const zone = state.zones.find((item) => item.id === zoneId);
+  if (!zone) {
+    return;
+  }
+
+  ordered.push(zone);
+  ordered.forEach((item, index) => {
+    item.animation.order = index;
+  });
+  syncGroupMemberOrderToZoneOrder();
+  renderZones(state.zones);
+  renderAnimationStage();
+  renderZonesOrderPanel();
+  renderGroupsPanel();
+  updateInspector();
+  updateAnimationControlsState();
+}
+
+function getZoneOrderDropPlacement(event, row) {
+  const rect = row.getBoundingClientRect();
+  return event.clientY >= rect.top + rect.height / 2 ? "after" : "before";
+}
+
+function resetZoneOrderDragState() {
+  state.zoneOrderDrag.zoneId = null;
+  state.zoneOrderDrag.overZoneId = null;
+  state.zoneOrderDrag.placement = "before";
+  clearZoneOrderDropIndicator();
+  zonesOrderList.classList.remove("drag-active");
+}
+
+function updateZoneOrderDropIndicator() {
+  clearZoneOrderDropIndicator();
+  const row = zonesOrderList.querySelector(`[data-zone-id="${state.zoneOrderDrag.overZoneId}"]`);
+  if (!row) {
+    return;
+  }
+  row.classList.add(state.zoneOrderDrag.placement === "after" ? "drop-after" : "drop-before");
+}
+
+function clearZoneOrderDropIndicator() {
+  zonesOrderList.querySelectorAll(".zone-order-row").forEach((row) => {
+    row.classList.remove("drop-before", "drop-after", "drag-source");
+  });
 }
 
 function syncGroupMemberOrderToZoneOrder() {
@@ -1941,6 +2241,9 @@ function removeZoneFromAnyGroup(zoneId, rerender) {
     group.zoneIds = group.zoneIds.filter((id) => id !== zoneId);
   });
   state.groups = state.groups.filter((group) => group.zoneIds.length > 0);
+  if (state.selectedGroupId && !state.groups.some((group) => group.id === state.selectedGroupId)) {
+    state.selectedGroupId = state.groups[0]?.id ?? null;
+  }
   const zone = state.zones.find((item) => item.id === zoneId);
   if (zone) {
     zone.animation.groupId = null;
