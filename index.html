@@ -11,6 +11,8 @@
       rel="stylesheet"
     />
     <link rel="stylesheet" href="./styles.css" />
+    <link rel="stylesheet" href="./group-editor.css" />
+    <link rel="stylesheet" href="./group-focus.css" />
   </head>
   <body>
     <main class="app-shell">
@@ -130,6 +132,9 @@
               </button>
               <button id="toggleZoneLockButton" class="btn btn-secondary" disabled>
                 Verrouiller la zone
+              </button>
+              <button id="duplicateZoneButton" class="btn btn-secondary" disabled>
+                Dupliquer la zone
               </button>
             </div>
           </div>
@@ -316,35 +321,56 @@
             <section class="under-stage-card groups-stage-card">
               <div class="panel-header">
                 <div>
-                  <h2>Evenements d'apparition</h2>
-                  <p>Selection multiple puis groupement d'elements avec decalage maitrise.</p>
+                  <h2>Groupes d'apparition</h2>
+                  <p>Zones revelees ensemble avec un decalage maitrise entre les membres du groupe.</p>
                 </div>
                 <div class="zones-actions">
-                  <button id="createGroupButton" class="btn btn-secondary" disabled>
-                    Grouper la selection
+                  <button id="createTimingGroupButton" class="btn btn-secondary" disabled>
+                    Creer un groupe d'apparition
                   </button>
-                  <button id="ungroupSelectedZoneButton" class="btn btn-secondary" disabled>
-                    Retirer la zone
+                  <button id="removeSelectedFromTimingGroupButton" class="btn btn-secondary" disabled>
+                    Retirer du groupe
                   </button>
                 </div>
               </div>
-              <div id="groupsList" class="groups-list">
+              <div id="timingGroupsList" class="groups-list">
                 <article class="empty-state">
-                  Selectionne plusieurs zones avec Ctrl puis clique sur Grouper la selection.
+                  Selectionne plusieurs zones avec Ctrl puis cree un groupe d'apparition.
                 </article>
+              </div>
+              <div class="embedded-order-panel">
+                <div class="panel-header compact-panel-header">
+                  <div>
+                    <h2>Ordre des zones</h2>
+                    <p>Glisse les zones par leur poignee pour reorganiser la narration plus vite.</p>
+                  </div>
+                </div>
+                <div id="zonesOrderList" class="groups-list zones-order-list">
+                  <article class="empty-state">
+                    La liste des zones apparaitra ici apres detection.
+                  </article>
+                </div>
               </div>
             </section>
 
-            <section class="under-stage-card order-stage-card">
+            <section class="under-stage-card groups-stage-card">
               <div class="panel-header">
                 <div>
-                  <h2>Ordre des zones</h2>
-                  <p>Glisse les zones par leur poignee pour reorganiser la narration plus vite.</p>
+                  <h2>Groupes de focus</h2>
+                  <p>Zones deja revelees que l'on atténue, floute ou agrandit legerement pour la suite.</p>
+                </div>
+                <div class="zones-actions">
+                  <button id="createFocusGroupButton" class="btn btn-secondary" disabled>
+                    Mettre en focus
+                  </button>
+                  <button id="removeSelectedFromFocusGroupButton" class="btn btn-secondary" disabled>
+                    Retirer du focus
+                  </button>
                 </div>
               </div>
-              <div id="zonesOrderList" class="groups-list zones-order-list">
+              <div id="focusGroupsList" class="groups-list">
                 <article class="empty-state">
-                  La liste des zones apparaitra ici apres detection.
+                  Selectionne une ou plusieurs zones puis mets-les en focus pour atténuer ce qui a deja ete presente.
                 </article>
               </div>
             </section>
@@ -535,14 +561,21 @@
           <p class="zone-dimensions"></p>
           <p class="zone-position"></p>
           <p class="zone-step"></p>
+          <p class="zone-focus-state"></p>
         </div>
         <div class="zone-card-actions">
           <button class="btn btn-tertiary zone-edit">Regler</button>
           <button class="btn btn-secondary zone-download">PNG</button>
         </div>
+        <div class="zone-card-actions compact-actions zone-group-actions">
+          <button class="btn btn-secondary zone-group-timing">Groupe apparition</button>
+          <button class="btn btn-secondary zone-group-focus">Mode focus</button>
+        </div>
       </article>
     </template>
 
+    <script src="./group-editor.js"></script>
+    <script src="./group-focus.js"></script>
     <script src="./app.js"></script>
   </body>
 </html>

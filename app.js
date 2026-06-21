@@ -75,6 +75,8 @@ const state = {
   zones: [],
   groups: [],
   selectedGroupId: null,
+  selectedFocusGroupId: null,
+  expandedFocusGroupIds: [],
   detectionProfile: presets.balanced,
   selectedZoneId: null,
   selectedZoneIds: [],
@@ -109,6 +111,7 @@ const state = {
     overZoneId: null,
     placement: "before",
   },
+  previewOrderLabels: [],
 };
 
 const imageInput = document.querySelector("#imageInput");
@@ -124,8 +127,10 @@ const exportHtmlButton = document.querySelector("#exportHtmlButton");
 const playPreviewButton = document.querySelector("#playPreviewButton");
 const resetPreviewButton = document.querySelector("#resetPreviewButton");
 const fullscreenPreviewButton = document.querySelector("#fullscreenPreviewButton");
-const createGroupButton = document.querySelector("#createGroupButton");
-const ungroupSelectedZoneButton = document.querySelector("#ungroupSelectedZoneButton");
+const createTimingGroupButton = document.querySelector("#createTimingGroupButton");
+const removeSelectedFromTimingGroupButton = document.querySelector("#removeSelectedFromTimingGroupButton");
+const createFocusGroupButton = document.querySelector("#createFocusGroupButton");
+const removeSelectedFromFocusGroupButton = document.querySelector("#removeSelectedFromFocusGroupButton");
 const presetCascadeButton = document.querySelector("#presetCascadeButton");
 const presetOrganicButton = document.querySelector("#presetOrganicButton");
 const presetFloralButton = document.querySelector("#presetFloralButton");
@@ -135,7 +140,8 @@ const previewCanvas = document.querySelector("#previewCanvas");
 const previewContext = previewCanvas.getContext("2d");
 const toggleZoneLockButton = document.querySelector("#toggleZoneLockButton");
 const zonesGrid = document.querySelector("#zonesGrid");
-const groupsList = document.querySelector("#groupsList");
+const timingGroupsList = document.querySelector("#timingGroupsList");
+const focusGroupsList = document.querySelector("#focusGroupsList");
 const zonesOrderList = document.querySelector("#zonesOrderList");
 const controlsPanel = document.querySelector(".controls");
 const animationStage = document.querySelector("#animationStage");
@@ -183,6 +189,7 @@ const splitZoneHorizontalButton = document.querySelector("#splitZoneHorizontalBu
 const splitZone2ColsButton = document.querySelector("#splitZone2ColsButton");
 const splitZone3ColsButton = document.querySelector("#splitZone3ColsButton");
 const splitZone4ColsButton = document.querySelector("#splitZone4ColsButton");
+const duplicateZoneButton = document.querySelector("#duplicateZoneButton");
 const resetSubdivideButton = document.querySelector("#resetSubdivideButton");
 const splitZoneSummary = document.querySelector("#splitZoneSummary");
 const zoneEnabledCheckbox = document.querySelector("#zoneEnabledCheckbox");
@@ -203,6 +210,66 @@ const zoneScaleValue = document.querySelector("#zoneScaleValue");
 const zoneRotateValue = document.querySelector("#zoneRotateValue");
 
 const zoneCardTemplate = document.querySelector("#zoneCardTemplate");
+
+function getZoneTimingGroupId(animation = {}) {
+  if (typeof animation.timingGroupId === "string" && animation.timingGroupId) {
+    return animation.timingGroupId;
+  }
+  if (typeof animation.groupId === "string" && animation.groupId) {
+    return animation.groupId;
+  }
+  return null;
+}
+
+function getZoneFocusGroupId(animation = {}) {
+  return typeof animation.focusGroupId === "string" && animation.focusGroupId ? animation.focusGroupId : null;
+}
+
+function getGroupById(groupId) {
+  return state.groups.find((group) => group.id === groupId) ?? null;
+}
+
+function getGroupsByKind(kind) {
+  return state.groups.filter((group) => group.kind === kind);
+}
+
+function getFocusGroupRevealIndex(group, currentStep) {
+  if (!group || group.kind !== "focus") {
+    return -1;
+  }
+
+  let latestIndex = -1;
+  group.zoneIds.forEach((zoneId, index) => {
+    const zone = state.zones.find((item) => item.id === zoneId);
+    const step = Math.max(1, Number(zone?.animation.step) || 1);
+    if (step <= currentStep && index > latestIndex) {
+      latestIndex = index;
+    }
+  });
+  return latestIndex;
+}
+
+function getFocusAppearanceForDepth(presentation, depth) {
+  const sanitized = sanitizeGroupPresentation(presentation);
+  if (!sanitized.enabled) {
+    return null;
+  }
+
+  if (depth <= 0) {
+    return {
+      opacity: 1,
+      scale: sanitized.activeScale,
+      blur: sanitized.activeBlur,
+    };
+  }
+
+  const extraDepth = Math.max(0, depth - 1);
+  return {
+    opacity: clamp(sanitized.settledOpacity - extraDepth * sanitized.settledOpacityStep, 0.08, 1),
+    scale: clamp(sanitized.settledScale - extraDepth * sanitized.settledScaleStep, 0.55, 1),
+    blur: clamp(sanitized.settledBlur + extraDepth * sanitized.settledBlurStep, 0, 12),
+  };
+}
 
 syncDetectionLabels();
 syncAnimationLabels();
@@ -353,6 +420,7 @@ imageInput.addEventListener("change", async (event) => {
     state.zones = [];
     state.groups = [];
     state.selectedGroupId = null;
+    state.selectedFocusGroupId = null;
     state.selectedZoneId = null;
     state.selectedZoneIds = [];
 
@@ -461,26 +529,40 @@ toggleZoneLockButton.addEventListener("click", () => {
   toggleSelectedZoneLock();
 });
 
+duplicateZoneButton.addEventListener("click", () => {
+  duplicateSelectedZone();
+});
+
 addZoneModeButton.addEventListener("click", () => {
   toggleAddZoneMode();
 });
 
-createGroupButton.addEventListener("click", () => {
-  createNewGroup();
+createTimingGroupButton.addEventListener("click", () => {
+  createNewTimingGroup();
 });
 
-ungroupSelectedZoneButton.addEventListener("click", () => {
-  removeSelectedZoneFromGroup();
+removeSelectedFromTimingGroupButton.addEventListener("click", () => {
+  removeSelectedZoneFromTimingGroup();
+});
+
+createFocusGroupButton.addEventListener("click", () => {
+  createNewFocusGroup();
+});
+
+removeSelectedFromFocusGroupButton.addEventListener("click", () => {
+  removeSelectedZoneFromFocusGroup();
 });
 
 animationStage.addEventListener("click", (event) => {
+  if (state.previewRuntime && state.previewRuntime.active) {
+    event.preventDefault();
+    state.previewRuntime.handleInteraction("click");
+    return;
+  }
+
   const zoneElement = event.target.closest(".animation-zone");
   if (zoneElement) {
     selectZone(zoneElement.dataset.zoneId, event.ctrlKey || event.metaKey);
-  }
-
-  if (state.previewRuntime && state.previewRuntime.active) {
-    state.previewRuntime.handleInteraction("click");
   }
 });
 
@@ -492,10 +574,6 @@ zonesOrderList.addEventListener("drop", handleZoneOrderListDrop);
 window.addEventListener("mouseup", handlePreviewCanvasPointerUp);
 
 window.addEventListener("keydown", (event) => {
-  if (!state.previewRuntime || !state.previewRuntime.active) {
-    return;
-  }
-
   const target = event.target;
   if (
     target instanceof HTMLElement &&
@@ -504,7 +582,15 @@ window.addEventListener("keydown", (event) => {
     return;
   }
 
-  state.previewRuntime.handleInteraction("key");
+  if (state.previewRuntime && state.previewRuntime.active) {
+    state.previewRuntime.handleInteraction("key");
+    return;
+  }
+
+  if ((event.key === "Delete" || event.key === "Backspace") && state.selectedZoneIds.length) {
+    event.preventDefault();
+    deleteSelectedZones();
+  }
 });
 
 zoneEnabledCheckbox.addEventListener("change", () => {
@@ -621,6 +707,7 @@ function drawAnnotatedPreview() {
   }
 
   drawSourceImage();
+  state.previewOrderLabels = [];
   previewContext.save();
   previewContext.lineWidth = 3;
   previewContext.font = "600 18px 'Space Grotesk', sans-serif";
@@ -641,9 +728,19 @@ function drawAnnotatedPreview() {
     previewContext.fillRect(zone.x, zone.y, zone.width, zone.height);
     previewContext.strokeRect(zone.x, zone.y, zone.width, zone.height);
 
-    const label = zone.locked ? `${index + 1} LOCK` : `${index + 1}`;
+    const zoneOrderNumber = (zone.animation.order ?? index) + 1;
+    const label = zone.locked ? `${zoneOrderNumber} LOCK` : `${zoneOrderNumber}`;
+    const labelWidth = zone.locked ? 82 : Math.max(36, previewContext.measureText(label).width + 18);
+    const labelRect = {
+      x: zone.x + 8,
+      y: zone.y + 8,
+      width: labelWidth,
+      height: 30,
+      zoneId: zone.id,
+    };
+    state.previewOrderLabels.push(labelRect);
     previewContext.fillStyle = "rgba(31, 27, 22, 0.88)";
-    previewContext.fillRect(zone.x + 8, zone.y + 8, zone.locked ? 82 : 36, 30);
+    previewContext.fillRect(labelRect.x, labelRect.y, labelRect.width, labelRect.height);
     previewContext.fillStyle = "#fff";
     previewContext.fillText(label, zone.x + 17, zone.y + 13);
 
@@ -717,6 +814,13 @@ function handlePreviewCanvasPointerDown(event) {
   const point = getCanvasPoint(event);
 
   if (!state.previewEdit.createMode) {
+    const orderLabelHit = getPreviewOrderLabelHit(point);
+    if (orderLabelHit) {
+      promptZoneOrderChange(orderLabelHit.zoneId);
+      event.preventDefault();
+      return;
+    }
+
     const deleteActionRect = getPreviewDeleteActionRect();
     if (deleteActionRect && isPointInRect(point, deleteActionRect)) {
       deleteSelectedZones();
@@ -745,7 +849,11 @@ function handlePreviewCanvasPointerDown(event) {
     return;
   }
 
-  const handleHit = getPreviewHandleHit(point);
+  let handleHit = getPreviewHandleHit(point);
+  if (handleHit && handleHit.zone.locked) {
+    unlockZoneForCanvasEdit(handleHit.zone);
+    handleHit = getPreviewHandleHit(point);
+  }
   if (handleHit && !handleHit.zone.locked) {
     if (state.selectedZoneId !== handleHit.zone.id) {
       selectZone(handleHit.zone.id, event.ctrlKey || event.metaKey);
@@ -773,9 +881,38 @@ function handlePreviewCanvasPointerDown(event) {
 
   const zone = findZoneAtCanvasPoint(point);
   if (zone) {
+    unlockZoneForCanvasEdit(zone);
     selectZone(zone.id, event.ctrlKey || event.metaKey);
+    state.previewEdit = {
+      dragging: true,
+      mode: "move",
+      zoneId: zone.id,
+      handle: null,
+      startX: point.x,
+      startY: point.y,
+      startBox: {
+        x: zone.x,
+        y: zone.y,
+        width: zone.width,
+        height: zone.height,
+      },
+      pointerMoved: false,
+      createMode: false,
+      draftBox: null,
+    };
     event.preventDefault();
   }
+}
+
+function unlockZoneForCanvasEdit(zone) {
+  if (!zone.locked) {
+    return;
+  }
+  zone.locked = false;
+  drawAnnotatedPreview();
+  renderZones(state.zones);
+  updateInspector();
+  updateAnimationControlsState();
 }
 
 function handlePreviewCanvasPointerMove(event) {
@@ -798,6 +935,26 @@ function handlePreviewCanvasPointerMove(event) {
       return;
     }
 
+    if (state.previewEdit.mode === "move") {
+      const nextX = clamp(
+        state.previewEdit.startBox.x + point.x - state.previewEdit.startX,
+        0,
+        previewCanvas.width - zone.width
+      );
+      const nextY = clamp(
+        state.previewEdit.startBox.y + point.y - state.previewEdit.startY,
+        0,
+        previewCanvas.height - zone.height
+      );
+      zone.x = Math.round(nextX);
+      zone.y = Math.round(nextY);
+      state.previewEdit.pointerMoved = true;
+      previewCanvas.style.cursor = "grabbing";
+      drawAnnotatedPreview();
+      updateInspector();
+      return;
+    }
+
     const nextBox = computeResizedBox(state.previewEdit.startBox, state.previewEdit.handle, point.x - state.previewEdit.startX, point.y - state.previewEdit.startY);
     zone.x = nextBox.x;
     zone.y = nextBox.y;
@@ -811,6 +968,12 @@ function handlePreviewCanvasPointerMove(event) {
   }
 
   const deleteActionRect = !state.previewEdit.createMode ? getPreviewDeleteActionRect() : null;
+  const orderLabelHit = !state.previewEdit.createMode ? getPreviewOrderLabelHit(point) : null;
+  if (orderLabelHit) {
+    previewCanvas.style.cursor = "pointer";
+    return;
+  }
+
   if (deleteActionRect && isPointInRect(point, deleteActionRect)) {
     previewCanvas.style.cursor = "pointer";
     return;
@@ -828,7 +991,7 @@ function handlePreviewCanvasPointerMove(event) {
   }
 
   const zone = findZoneAtCanvasPoint(point);
-  previewCanvas.style.cursor = zone ? "pointer" : "default";
+  previewCanvas.style.cursor = zone ? "grab" : "default";
 }
 
 function handlePreviewCanvasPointerLeave() {
@@ -990,6 +1153,16 @@ function getPreviewDeleteActionRect() {
   };
 }
 
+function getPreviewOrderLabelHit(point) {
+  for (let index = state.previewOrderLabels.length - 1; index >= 0; index -= 1) {
+    const rect = state.previewOrderLabels[index];
+    if (isPointInRect(point, rect)) {
+      return rect;
+    }
+  }
+  return null;
+}
+
 function getPreviewHandleHit(point) {
   const zone = getSelectedZone();
   if (!zone) {
@@ -1145,6 +1318,48 @@ function createManualZone(box) {
   setStatus("Zone ajoutee manuellement.", `${zone.width} x ${zone.height} px • origine (${zone.x}, ${zone.y})`);
 }
 
+function duplicateSelectedZone() {
+  const source = getSelectedZone();
+  if (!source) {
+    return;
+  }
+
+  const offset = 28;
+  const box = {
+    x: clamp(source.x + offset, 0, Math.max(0, previewCanvas.width - source.width)),
+    y: clamp(source.y + offset, 0, Math.max(0, previewCanvas.height - source.height)),
+    width: source.width,
+    height: source.height,
+    area: source.width * source.height,
+    shape: source.shape,
+    shapeConfidence: source.shapeConfidence,
+  };
+  const animation = {
+    ...source.animation,
+    order: state.zones.length,
+    step: state.zones.length + 1,
+    timingGroupId: null,
+    focusGroupId: null,
+    groupId: null,
+  };
+  const duplicate = createZoneAsset(box, state.zones.length, animation);
+  duplicate.locked = false;
+  state.zones.push(duplicate);
+  state.selectedZoneId = duplicate.id;
+  state.selectedZoneIds = [duplicate.id];
+  state.stepEditor.step = duplicate.animation.step;
+
+  drawAnnotatedPreview();
+  renderZones(state.zones);
+  renderAnimationStage();
+  updateInspector();
+  loadStepEditorFromZones(true);
+  renderGroupsPanel();
+  renderZonesOrderPanel();
+  updateAnimationControlsState();
+  setStatus("Zone dupliquee.", "Glisse la copie dans l'aperçu de detection pour la repositionner.");
+}
+
 function deleteSelectedZones() {
   const zoneIds = [...state.selectedZoneIds];
   if (!zoneIds.length) {
@@ -1185,6 +1400,16 @@ function deleteSelectedZones() {
     zoneIds.length > 1 ? "Selection supprimee." : "Zone supprimee.",
     `${state.zones.length} zone(s) restante(s) dans le projet.`
   );
+}
+
+function removeZoneFromAnyGroup(zoneId, rerender = false) {
+  removeZoneFromGroupsOfKind(zoneId, "timing", false);
+  removeZoneFromGroupsOfKind(zoneId, "focus", false);
+
+  if (rerender) {
+    renderGroupsPanel();
+    updateAnimationControlsState();
+  }
 }
 
 function runDetection() {
@@ -1295,7 +1520,7 @@ function createZoneAsset(box, index, animationOverride = null, sourceContext = n
     locked: false,
     subdivisionParent: null,
     subdivisionChildren: null,
-    animation: animationOverride
+      animation: animationOverride
       ? { ...animationOverride }
       : {
         enabled: true,
@@ -1304,12 +1529,14 @@ function createZoneAsset(box, index, animationOverride = null, sourceContext = n
         effect: "fade-up",
         duration: 700,
         delay: 0,
+        timingGroupId: null,
+        focusGroupId: null,
         groupId: null,
         offsetX: 0,
         offsetY: 24,
         scaleFrom: 0.96,
-          rotateFrom: 0,
-        },
+        rotateFrom: 0,
+      },
   };
 }
 
@@ -1333,8 +1560,11 @@ function renderZones(zones) {
     const dimensions = card.querySelector(".zone-dimensions");
     const position = card.querySelector(".zone-position");
     const step = card.querySelector(".zone-step");
+    const focusState = card.querySelector(".zone-focus-state");
     const editButton = card.querySelector(".zone-edit");
     const downloadButton = card.querySelector(".zone-download");
+    const timingGroupButton = card.querySelector(".zone-group-timing");
+    const focusGroupButton = card.querySelector(".zone-group-focus");
 
     if (state.selectedZoneIds.includes(zone.id)) {
       card.classList.add("selected");
@@ -1371,10 +1601,62 @@ function renderZones(zones) {
       triggerDownload(zone.fileName, zone.dataUrl);
     });
 
+    const hasMultiSelection = state.selectedZoneIds.length >= 2;
+    const isFocusZone = Boolean(getZoneFocusGroupId(zone.animation));
+    focusState.textContent = isFocusZone ? "Mode focus actif" : "Mode focus inactif";
+    focusState.classList.toggle("active", isFocusZone);
+    timingGroupButton.disabled = !hasMultiSelection;
+    focusGroupButton.disabled = !zone.animation.enabled;
+    focusGroupButton.textContent = isFocusZone ? "Focus actif" : "Mode focus";
+    focusGroupButton.classList.toggle("active", isFocusZone);
+    focusGroupButton.setAttribute("aria-pressed", String(isFocusZone));
+    timingGroupButton.addEventListener("click", (event) => {
+      event.stopPropagation();
+      createNewTimingGroup();
+    });
+    focusGroupButton.addEventListener("click", (event) => {
+      event.stopPropagation();
+      toggleZoneFocusMode(zone.id);
+    });
+
     fragment.append(card);
   });
 
   zonesGrid.append(fragment);
+}
+
+function toggleZoneFocusMode(zoneId) {
+  const zone = state.zones.find((item) => item.id === zoneId);
+  if (!zone || !zone.animation.enabled) {
+    return;
+  }
+
+  if (getZoneFocusGroupId(zone.animation)) {
+    removeZoneFromGroup(zone.id, "focus");
+    setAnimationStatus("Zone retiree du mode focus.");
+    return;
+  }
+
+  state.selectedZoneId = zone.id;
+  state.selectedZoneIds = [zone.id];
+  const group = {
+    id: makeId(state.groups.length + 1),
+    kind: "focus",
+    name: `Focus zone ${(zone.animation.order ?? 0) + 1}`,
+    presentation: createDefaultGroupPresentation(),
+    zoneIds: [],
+  };
+  removeZoneFromGroupsOfKind(zone.id, "focus", false);
+  zone.animation.focusGroupId = group.id;
+  group.zoneIds.push(zone.id);
+  state.groups.push(group);
+  state.selectedFocusGroupId = group.id;
+  renderZones(state.zones);
+  renderAnimationStage();
+  updateInspector();
+  renderGroupsPanel();
+  updateAnimationControlsState();
+  setAnimationStatus("Zone placee en mode focus.");
 }
 
 function renderAnimationStage() {
@@ -1538,8 +1820,12 @@ function updateAnimationControlsState() {
   playPreviewButton.disabled = !hasEnabledZones;
   resetPreviewButton.disabled = !hasZones;
   exportHtmlButton.disabled = !hasEnabledZones;
-  createGroupButton.disabled = !hasMultiSelection;
-  ungroupSelectedZoneButton.disabled = !hasSelectedZone || getSelectedZones().every((zone) => !zone.animation.groupId);
+  createTimingGroupButton.disabled = !hasMultiSelection;
+  removeSelectedFromTimingGroupButton.disabled =
+    !hasSelectedZone || getSelectedZones().every((zone) => !getZoneTimingGroupId(zone.animation));
+  createFocusGroupButton.disabled = !hasSelectedZone;
+  removeSelectedFromFocusGroupButton.disabled =
+    !hasSelectedZone || getSelectedZones().every((zone) => !getZoneFocusGroupId(zone.animation));
   autoStepGapRange.disabled = state.animationSettings.stepMode !== "auto";
   applyStepSettingsButton.disabled = !hasEnabledZones || getZonesForStep(state.stepEditor.step).length === 0;
   splitZoneAutoButton.disabled = !hasSelectedZone;
@@ -1548,6 +1834,7 @@ function updateAnimationControlsState() {
   splitZone2ColsButton.disabled = !hasSelectedZone;
   splitZone3ColsButton.disabled = !hasSelectedZone;
   splitZone4ColsButton.disabled = !hasSelectedZone;
+  duplicateZoneButton.disabled = !hasSelectedZone;
   resetSubdivideButton.disabled = !selectedZone?.subdivisionParent;
 
   if (hasEnabledZones) {
@@ -1561,166 +1848,6 @@ function updateAnimationControlsState() {
   } else if (hasZones) {
     setAnimationStatus("Aucune zone n'est actuellement incluse dans la slide.");
   }
-}
-
-function renderGroupsPanel() {
-  groupsList.innerHTML = "";
-
-  if (!state.groups.length) {
-    const emptyState = document.createElement("article");
-    emptyState.className = "empty-state";
-    emptyState.textContent = "Selectionne plusieurs zones avec Ctrl puis clique sur Grouper la selection.";
-    groupsList.append(emptyState);
-    return;
-  }
-
-  const fragment = document.createDocumentFragment();
-
-  state.groups.forEach((group, index) => {
-    const card = document.createElement("article");
-    card.className = "group-card";
-
-    const topline = document.createElement("div");
-    topline.className = "group-topline";
-
-    const titleWrap = document.createElement("div");
-    const title = document.createElement("h3");
-    title.className = "group-name";
-    title.textContent = group.name;
-    const meta = document.createElement("p");
-    meta.className = "group-meta";
-    meta.textContent = `${group.zoneIds.length} zone(s) • etape ${group.step} • stagger ${group.stagger} ms`;
-    titleWrap.append(title, meta);
-
-    const removeButton = document.createElement("button");
-    removeButton.className = "mini-btn";
-    removeButton.textContent = "Supprimer";
-    removeButton.addEventListener("click", () => {
-      deleteGroup(group.id);
-    });
-
-    topline.append(titleWrap, removeButton);
-
-    const controls = document.createElement("div");
-    controls.className = "group-controls";
-
-    const nameField = createMiniField("Nom", group.name, (value) => {
-      group.name = value || group.name;
-      renderGroupsPanel();
-    });
-    const stepField = createMiniField("Etape", String(group.step), (value) => {
-      const step = Math.max(1, Number(value) || 1);
-      group.step = step;
-      syncGroupStepToMembers(group);
-      renderZones(state.zones);
-      renderAnimationStage();
-      updateInspector();
-      renderGroupsPanel();
-      updateAnimationControlsState();
-    }, "number");
-    const staggerField = createMiniField("Stagger ms", String(group.stagger), (value) => {
-      group.stagger = Math.max(0, Number(value) || 0);
-      renderGroupsPanel();
-    }, "number");
-    controls.append(nameField, stepField, staggerField);
-
-    const actions = document.createElement("div");
-    actions.className = "group-actions";
-
-    const addSelectedButton = document.createElement("button");
-    addSelectedButton.className = "mini-btn";
-    addSelectedButton.textContent = "Ajouter la selection";
-    addSelectedButton.disabled = state.selectedZoneIds.length === 0;
-    addSelectedButton.addEventListener("click", () => {
-      assignSelectionToGroup(group.id);
-    });
-
-    const selectGroupButton = document.createElement("button");
-    selectGroupButton.className = "mini-btn";
-    selectGroupButton.textContent = state.selectedGroupId === group.id ? "Groupe actif" : "Activer";
-    selectGroupButton.addEventListener("click", () => {
-      state.selectedGroupId = group.id;
-      renderGroupsPanel();
-    });
-
-    actions.append(addSelectedButton, selectGroupButton);
-
-    const members = document.createElement("div");
-    members.className = "group-members";
-
-    group.zoneIds.forEach((zoneId, memberIndex) => {
-      const zone = state.zones.find((item) => item.id === zoneId);
-      if (!zone) {
-        return;
-      }
-
-      const row = document.createElement("div");
-      row.className = "group-member";
-
-      const left = document.createElement("div");
-      left.className = "member-left";
-
-      const handle = document.createElement("span");
-      handle.className = "member-handle";
-      handle.textContent = ":::";
-
-      const label = document.createElement("button");
-      label.className = "mini-btn member-label";
-      label.textContent = `${memberIndex + 1}. ${zone.fileName}`;
-      label.addEventListener("click", () => {
-        selectZone(zone.id);
-      });
-
-      left.append(handle, label);
-
-      const effectSelect = document.createElement("select");
-      effectSelect.className = "select-control member-effect-select";
-      getEffectOptions().forEach((option) => {
-        const element = document.createElement("option");
-        element.value = option.value;
-        element.textContent = option.label;
-        if (zone.animation.effect === option.value) {
-          element.selected = true;
-        }
-        effectSelect.append(element);
-      });
-      effectSelect.addEventListener("change", () => {
-        zone.animation.effect = effectSelect.value;
-        renderZones(state.zones);
-        renderAnimationStage();
-        updateInspector();
-        renderGroupsPanel();
-      });
-
-      const buttons = document.createElement("div");
-      buttons.className = "member-buttons";
-
-      const upButton = document.createElement("button");
-      upButton.className = "mini-btn";
-      upButton.textContent = "↑";
-      upButton.disabled = memberIndex === 0;
-      upButton.addEventListener("click", () => {
-        reorderGroupMember(group.id, memberIndex, -1);
-      });
-
-      const downButton = document.createElement("button");
-      downButton.className = "mini-btn";
-      downButton.textContent = "↓";
-      downButton.disabled = memberIndex === group.zoneIds.length - 1;
-      downButton.addEventListener("click", () => {
-        reorderGroupMember(group.id, memberIndex, 1);
-      });
-
-      buttons.append(upButton, downButton);
-      row.append(left, effectSelect, buttons);
-      members.append(row);
-    });
-
-    card.append(topline, controls, actions, members);
-    fragment.append(card);
-  });
-
-  groupsList.append(fragment);
 }
 
 function renderZonesOrderPanel() {
@@ -1810,8 +1937,10 @@ function renderZonesOrderPanel() {
     labelWrap.className = "zone-order-copy";
 
     const button = document.createElement("button");
+    const zoneOrderNumber = (zone.animation.order ?? index) + 1;
+
     button.className = "zone-order-label";
-    button.innerHTML = `<strong>Zone ${index + 1}</strong>`;
+    button.innerHTML = `<strong>Zone ${zoneOrderNumber}</strong>`;
     button.addEventListener("click", () => {
       selectZone(zone.id);
     });
@@ -1823,9 +1952,15 @@ function renderZonesOrderPanel() {
     labelWrap.append(button, meta);
     main.append(handle, thumb, labelWrap);
 
-    const badge = document.createElement("div");
+    const badge = document.createElement("button");
+    badge.type = "button";
     badge.className = "zone-order-badge";
-    badge.textContent = zone.animation.enabled ? `${index + 1}` : "Off";
+    badge.textContent = zone.animation.enabled ? `${zoneOrderNumber}` : "Off";
+    badge.title = "Cliquer pour modifier le numero de zone";
+    badge.addEventListener("click", (event) => {
+      event.stopPropagation();
+      promptZoneOrderChange(zone.id);
+    });
 
     row.append(main, badge);
     fragment.append(row);
@@ -1899,6 +2034,51 @@ function moveZoneOrderToTarget(draggedZoneId, targetZoneId, placement = "before"
   updateAnimationControlsState();
 }
 
+function moveZoneOrderToPosition(zoneId, targetPosition) {
+  const ordered = getZonesInOrder();
+  const currentIndex = ordered.findIndex((zone) => zone.id === zoneId);
+  if (currentIndex < 0) {
+    return;
+  }
+
+  const clampedIndex = clamp(Math.round(targetPosition) - 1, 0, ordered.length - 1);
+  const [zone] = ordered.splice(currentIndex, 1);
+  ordered.splice(clampedIndex, 0, zone);
+  ordered.forEach((item, index) => {
+    item.animation.order = index;
+  });
+  syncGroupMemberOrderToZoneOrder();
+  drawAnnotatedPreview();
+  renderZones(state.zones);
+  renderAnimationStage();
+  renderZonesOrderPanel();
+  renderGroupsPanel();
+  updateInspector();
+  updateAnimationControlsState();
+}
+
+function promptZoneOrderChange(zoneId) {
+  const zone = state.zones.find((item) => item.id === zoneId);
+  if (!zone) {
+    return;
+  }
+
+  const currentPosition = (zone.animation.order ?? 0) + 1;
+  const value = window.prompt(`Nouveau numero de zone (1-${state.zones.length})`, String(currentPosition));
+  if (value === null) {
+    return;
+  }
+
+  const targetPosition = Number(value);
+  if (!Number.isFinite(targetPosition)) {
+    setStatus("Numero invalide.", "Entre un nombre correspondant au rang voulu.");
+    return;
+  }
+
+  moveZoneOrderToPosition(zone.id, targetPosition);
+  setStatus("Ordre des zones mis a jour.", `Zone deplacee en position ${clamp(Math.round(targetPosition), 1, state.zones.length)}.`);
+}
+
 function handleZoneOrderListDragOver(event) {
   if (!state.zoneOrderDrag.zoneId) {
     return;
@@ -1970,7 +2150,7 @@ function clearZoneOrderDropIndicator() {
 }
 
 function syncGroupMemberOrderToZoneOrder() {
-  state.groups.forEach((group) => {
+  getGroupsByKind("timing").forEach((group) => {
     group.zoneIds.sort((a, b) => {
       const zoneA = state.zones.find((zone) => zone.id === a);
       const zoneB = state.zones.find((zone) => zone.id === b);
@@ -1992,18 +2172,22 @@ function applyPresentationPreset(mode) {
     ? getContainRect(state.sourceImage.width, state.sourceImage.height, format.width, format.height)
     : { x: 0, y: 0, width: format.width, height: format.height };
 
-  if (!state.groups.length) {
+  const timingGroups = getGroupsByKind("timing");
+
+  if (!timingGroups.length) {
     orderedZones.forEach((zone, index) => {
       zone.animation.step = index + 1;
+      zone.animation.timingGroupId = null;
       zone.animation.groupId = null;
     });
   }
 
-  const groups = state.groups.length
-    ? [...state.groups]
+  const groups = timingGroups.length
+    ? [...timingGroups]
     : orderedZones.map((zone, index) => ({
         id: `virtual-${zone.id}`,
-        name: `Evenement ${index + 1}`,
+        kind: "timing",
+        name: `Apparition ${index + 1}`,
         step: index + 1,
         stagger: 0,
         zoneIds: [zone.id],
@@ -2061,7 +2245,8 @@ function applyPresentationPreset(mode) {
 
     members.forEach((zone) => {
       zone.animation.step = group.step;
-      if (state.groups.length) {
+      if (timingGroups.length) {
+        zone.animation.timingGroupId = group.id;
         zone.animation.groupId = group.id;
       }
     });
@@ -2172,137 +2357,6 @@ function applyPresentationMotionPreset(zone, members, groupIndex, index, globalI
   });
 }
 
-function createMiniField(labelText, value, onChange, type = "text") {
-  const wrapper = document.createElement("div");
-  wrapper.className = "mini-field";
-  const label = document.createElement("label");
-  label.textContent = labelText;
-  const input = document.createElement("input");
-  input.type = type;
-  input.value = value;
-  input.addEventListener("change", () => onChange(input.value));
-  wrapper.append(label, input);
-  return wrapper;
-}
-
-function createNewGroup() {
-  const selectedZones = getSelectedZones();
-  if (selectedZones.length < 2) {
-    setAnimationStatus("Selectionne au moins 2 zones avec Ctrl pour creer un evenement.");
-    return;
-  }
-  const group = {
-    id: makeId(state.groups.length + 1),
-    name: `Evenement ${state.groups.length + 1}`,
-    step: selectedZones[0]?.animation.step ?? 1,
-    stagger: 80,
-    zoneIds: [],
-  };
-  state.groups.push(group);
-  state.selectedGroupId = group.id;
-  assignSelectionToGroup(group.id);
-  renderGroupsPanel();
-  updateAnimationControlsState();
-}
-
-function assignSelectionToGroup(groupId) {
-  const zones = getSelectedZones();
-  const group = state.groups.find((item) => item.id === groupId);
-  if (!zones.length || !group) {
-    return;
-  }
-
-  zones.forEach((zone) => {
-    removeZoneFromAnyGroup(zone.id, false);
-    zone.animation.groupId = group.id;
-    zone.animation.step = group.step;
-    group.zoneIds.push(zone.id);
-  });
-
-  renderZones(state.zones);
-  renderAnimationStage();
-  updateInspector();
-  renderGroupsPanel();
-  updateAnimationControlsState();
-}
-
-function removeSelectedZoneFromGroup() {
-  const zones = getSelectedZones();
-  if (!zones.length) {
-    return;
-  }
-  zones.forEach((zone, index) => {
-    removeZoneFromAnyGroup(zone.id, index === zones.length - 1);
-  });
-}
-
-function removeZoneFromAnyGroup(zoneId, rerender) {
-  state.groups.forEach((group) => {
-    group.zoneIds = group.zoneIds.filter((id) => id !== zoneId);
-  });
-  state.groups = state.groups.filter((group) => group.zoneIds.length > 0);
-  if (state.selectedGroupId && !state.groups.some((group) => group.id === state.selectedGroupId)) {
-    state.selectedGroupId = state.groups[0]?.id ?? null;
-  }
-  const zone = state.zones.find((item) => item.id === zoneId);
-  if (zone) {
-    zone.animation.groupId = null;
-  }
-
-  if (rerender) {
-    renderZones(state.zones);
-    renderAnimationStage();
-    updateInspector();
-    renderGroupsPanel();
-    updateAnimationControlsState();
-  }
-}
-
-function deleteGroup(groupId) {
-  const group = state.groups.find((item) => item.id === groupId);
-  if (!group) {
-    return;
-  }
-  group.zoneIds.forEach((zoneId) => {
-    const zone = state.zones.find((item) => item.id === zoneId);
-    if (zone) {
-      zone.animation.groupId = null;
-    }
-  });
-  state.groups = state.groups.filter((item) => item.id !== groupId);
-  if (state.selectedGroupId === groupId) {
-    state.selectedGroupId = state.groups[0]?.id ?? null;
-  }
-  renderZones(state.zones);
-  renderAnimationStage();
-  updateInspector();
-  renderGroupsPanel();
-  updateAnimationControlsState();
-}
-
-function reorderGroupMember(groupId, memberIndex, direction) {
-  const group = state.groups.find((item) => item.id === groupId);
-  if (!group) {
-    return;
-  }
-  const nextIndex = memberIndex + direction;
-  if (nextIndex < 0 || nextIndex >= group.zoneIds.length) {
-    return;
-  }
-  const [zoneId] = group.zoneIds.splice(memberIndex, 1);
-  group.zoneIds.splice(nextIndex, 0, zoneId);
-  renderGroupsPanel();
-}
-
-function syncGroupStepToMembers(group) {
-  group.zoneIds.forEach((zoneId) => {
-    const zone = state.zones.find((item) => item.id === zoneId);
-    if (zone) {
-      zone.animation.step = group.step;
-    }
-  });
-}
-
 function loadStepEditorFromZones(forceSyncFields) {
   const zones = getZonesForStep(state.stepEditor.step);
   if (!zones.length) {
@@ -2394,8 +2448,9 @@ function subdivideSelectedZone(mode) {
     item.subdivisionParent = { ...parentSnapshot };
   });
 
-  if (zone.animation.groupId) {
-    const group = state.groups.find((item) => item.id === zone.animation.groupId);
+  const timingGroupId = getZoneTimingGroupId(zone.animation);
+  if (timingGroupId) {
+    const group = state.groups.find((item) => item.id === timingGroupId && item.kind === "timing");
     if (group) {
       const memberIndex = group.zoneIds.indexOf(zone.id);
       if (memberIndex >= 0) {
@@ -2450,8 +2505,9 @@ function resetSubdivisionForSelection() {
   restoredZone.locked = Boolean(parent.locked);
   restoredZone.subdivisionParent = parent.subdivisionParent ? { ...parent.subdivisionParent } : null;
 
-  if (parent.animation.groupId) {
-    const group = state.groups.find((item) => item.id === parent.animation.groupId);
+  const parentTimingGroupId = getZoneTimingGroupId(parent.animation);
+  if (parentTimingGroupId) {
+    const group = state.groups.find((item) => item.id === parentTimingGroupId && item.kind === "timing");
     if (group) {
       const memberIndexes = group.zoneIds
         .map((id, index) => (childIds.includes(id) ? index : -1))
@@ -2967,12 +3023,15 @@ function applyZoneEditorAppearance(element, zone) {
   element.style.opacity = "1";
   element.style.transform = "translate(0px, 0px) scale(1) rotate(0deg)";
   element.style.filter = "blur(0px)";
+  element.style.boxShadow = "";
+  element.style.zIndex = "";
   element.style.transitionDuration = `${zone.animation.duration}ms`;
   element.style.transitionDelay = "0ms";
   element.style.transitionTimingFunction = "cubic-bezier(0.22, 1, 0.36, 1)";
-  element.style.transitionProperty = "opacity, transform, filter";
+  element.style.transitionProperty = "opacity, transform, filter, box-shadow";
   element.classList.toggle("inactive", !zone.animation.enabled);
   element.classList.remove("preview-hidden");
+  element.classList.remove("focus-settled", "focus-active");
 }
 
 function applyZonePreviewAppearance(element, zone, revealed) {
@@ -2980,12 +3039,15 @@ function applyZonePreviewAppearance(element, zone, revealed) {
   element.style.opacity = String(styles.opacity);
   element.style.transform = styles.transform;
   element.style.filter = styles.filter;
+  element.style.boxShadow = "";
+  element.style.zIndex = "";
   element.style.transitionDuration = `${zone.animation.duration}ms`;
   element.style.transitionDelay = `${revealed ? zone.animation.delay : 0}ms`;
   element.style.transitionTimingFunction = "cubic-bezier(0.22, 1, 0.36, 1)";
-  element.style.transitionProperty = "opacity, transform, filter";
+  element.style.transitionProperty = "opacity, transform, filter, box-shadow";
   element.classList.toggle("inactive", !zone.animation.enabled);
   element.classList.toggle("preview-hidden", !revealed);
+  element.classList.remove("focus-settled", "focus-active");
 }
 
 function getZoneVisualState(animation, revealed) {
@@ -3106,6 +3168,15 @@ function getExportPayload() {
       placement: getZonePlacement(zone, fit, format),
       animation: resolveZoneAnimationForExport(zone),
     })),
+    groups: state.groups.map((group) => ({
+      id: group.id,
+      kind: group.kind ?? "timing",
+      name: group.name,
+      step: group.kind === "focus" ? undefined : group.step,
+      stagger: group.kind === "focus" ? undefined : group.stagger,
+      presentation: group.kind === "focus" ? sanitizeGroupPresentation(group.presentation) : undefined,
+      zoneIds: [...group.zoneIds],
+    })),
   };
 }
 
@@ -3142,12 +3213,15 @@ async function buildProjectPayload() {
     selectedZoneId: state.selectedZoneId,
     selectedZoneIds: [...state.selectedZoneIds],
     selectedGroupId: state.selectedGroupId,
+    selectedFocusGroupId: state.selectedFocusGroupId,
     zones: state.zones.map(serializeZoneForProject),
     groups: state.groups.map((group) => ({
       id: group.id,
+      kind: group.kind ?? "timing",
       name: group.name,
-      step: group.step,
-      stagger: group.stagger,
+      step: group.kind === "focus" ? undefined : group.step,
+      stagger: group.kind === "focus" ? undefined : group.stagger,
+      presentation: group.kind === "focus" ? sanitizeGroupPresentation(group.presentation) : undefined,
       zoneIds: [...group.zoneIds],
     })),
   };
@@ -3205,13 +3279,18 @@ function restoreProjectState(project, image) {
 
   const validZoneIds = new Set(state.zones.map((zone) => zone.id));
   state.groups = Array.isArray(project.groups)
-    ? project.groups
-        .map((group, index) => normalizeProjectGroup(group, index, validZoneIds))
-        .filter((group) => group.zoneIds.length > 0)
+    ? project.groups.flatMap((group, index) => normalizeProjectGroups(group, index, validZoneIds))
     : [];
 
   state.selectedGroupId =
     state.groups.find((group) => group.id === project.selectedGroupId)?.id ?? state.groups[0]?.id ?? null;
+  state.selectedFocusGroupId =
+    state.groups.find((group) => group.id === project.selectedFocusGroupId)?.id ??
+    (typeof project.selectedGroupId === "string"
+      ? state.groups.find((group) => group.id === `${project.selectedGroupId}-focus`)?.id
+      : null) ??
+    getGroupsByKind("focus")[0]?.id ??
+    null;
   state.selectedZoneId = validZoneIds.has(project.selectedZoneId) ? project.selectedZoneId : state.zones[0]?.id ?? null;
   state.selectedZoneIds = Array.isArray(project.selectedZoneIds)
     ? project.selectedZoneIds.filter((id) => validZoneIds.has(id))
@@ -3336,7 +3415,9 @@ function normalizeProjectZone(zone, index) {
       effect,
       duration: clamp(Number(animation.duration) || 700, 100, 4000),
       delay: Math.max(0, Number(animation.delay) || 0),
-      groupId: typeof animation.groupId === "string" && animation.groupId ? animation.groupId : null,
+      timingGroupId: getZoneTimingGroupId(animation),
+      focusGroupId: getZoneFocusGroupId(animation),
+      groupId: getZoneTimingGroupId(animation),
       offsetX: Number(animation.offsetX) || 0,
       offsetY: Number.isFinite(Number(animation.offsetY)) ? Number(animation.offsetY) : defaults.offsetY ?? 0,
       scaleFrom: clamp(Number(animation.scaleFrom) || 0.96, 0.2, 2),
@@ -3345,14 +3426,40 @@ function normalizeProjectZone(zone, index) {
   };
 }
 
-function normalizeProjectGroup(group, index, validZoneIds) {
-  return {
-    id: typeof group?.id === "string" && group.id ? group.id : makeId(index + 1),
-    name: group?.name || `Evenement ${index + 1}`,
-    step: Math.max(1, Number(group?.step) || index + 1),
-    stagger: Math.max(0, Number(group?.stagger) || 0),
-    zoneIds: Array.isArray(group?.zoneIds) ? group.zoneIds.filter((id) => validZoneIds.has(id)) : [],
-  };
+function normalizeProjectGroups(group, index, validZoneIds) {
+  const zoneIds = Array.isArray(group?.zoneIds) ? group.zoneIds.filter((id) => validZoneIds.has(id)) : [];
+  if (!zoneIds.length) {
+    return [];
+  }
+
+  const hasLegacyPresentation =
+    typeof group?.kind !== "string" && group?.presentation && Object.keys(group.presentation).length > 0;
+  const kind = group?.kind === "focus" ? "focus" : "timing";
+  const baseId = typeof group?.id === "string" && group.id ? group.id : makeId(index + 1);
+  const normalized = [];
+
+  if (kind === "timing" || hasLegacyPresentation) {
+    normalized.push({
+      id: baseId,
+      kind: "timing",
+      name: group?.name || `Apparition ${index + 1}`,
+      step: Math.max(1, Number(group?.step) || index + 1),
+      stagger: Math.max(0, Number(group?.stagger) || 0),
+      zoneIds: [...zoneIds],
+    });
+  }
+
+  if (kind === "focus" || hasLegacyPresentation) {
+    normalized.push({
+      id: kind === "focus" ? baseId : `${baseId}-focus`,
+      kind: "focus",
+      name: group?.name || `Focus ${index + 1}`,
+      presentation: sanitizeGroupPresentation(group?.presentation),
+      zoneIds: [...zoneIds],
+    });
+  }
+
+  return normalized;
 }
 
 function structuredCloneProjectData(value) {
@@ -3386,11 +3493,19 @@ function getResolvedEnabledStepCount() {
 
 function resolveZoneAnimationForExport(zone) {
   const animation = { ...zone.animation };
-  if (!animation.groupId) {
+  const focusPresentation = resolveZoneFocusPresentation(zone);
+  if (focusPresentation) {
+    animation.focusPresentation = focusPresentation;
+  } else {
+    delete animation.focusPresentation;
+  }
+
+  const timingGroupId = getZoneTimingGroupId(animation);
+  if (!timingGroupId) {
     return animation;
   }
 
-  const group = state.groups.find((item) => item.id === animation.groupId);
+  const group = state.groups.find((item) => item.id === timingGroupId && item.kind === "timing");
   if (!group) {
     return animation;
   }
@@ -3405,7 +3520,18 @@ function resolveZoneAnimationForExport(zone) {
   const index = Math.max(0, orderedZoneIds.indexOf(zone.id));
   animation.step = group.step;
   animation.delay = Math.max(0, animation.delay) + Math.max(0, group.stagger) * index;
+  animation.timingGroupId = group.id;
+  animation.groupId = group.id;
   return animation;
+}
+
+function resolveZoneFocusPresentation(zone) {
+  const focusGroupId = getZoneFocusGroupId(zone.animation);
+  if (!focusGroupId) {
+    return null;
+  }
+  const group = state.groups.find((item) => item.id === focusGroupId && item.kind === "focus");
+  return group ? sanitizeGroupPresentation(group.presentation) : createDefaultGroupPresentation();
 }
 
 function exportOverlayHtml() {
@@ -3463,6 +3589,10 @@ function buildExportHtml(payload) {
         display: block;
         transform-origin: center center;
         will-change: transform, opacity;
+      }
+      .anim-zone.focus-settled {
+        opacity: 0.48 !important;
+        filter: brightness(0.72) contrast(0.96) saturate(0.86) blur(1px) !important;
       }
     </style>
   </head>
@@ -3544,18 +3674,15 @@ function buildExportHtml(payload) {
         zoneEntry.element.style.filter = "blur(" + hiddenBlur(animation.effect) + "px)";
       }
 
-      function reveal(zoneEntry) {
-        zoneEntry.element.style.opacity = "1";
-        zoneEntry.element.style.transform = "translate(0px, 0px) scale(1) rotate(0deg)";
-        zoneEntry.element.style.filter = "blur(0px)";
-      }
-
       zones.forEach(applyHidden);
-
       let started = false;
       const stepSchedule = buildStepSchedule(zones);
+      const revealBatches = buildRevealBatches(zones);
+      const revealBatchIndex = new Map(revealBatches.map((batch) => [batch.key, batch.index]));
       let currentStepIndex = 0;
       let autoTimer = null;
+      let focusTimers = [];
+      let finalRevealTimer = null;
 
       function buildStepSchedule(items) {
         const steps = new Map();
@@ -3574,29 +3701,223 @@ function buildExportHtml(payload) {
           .map(([step, duration]) => ({ step, duration }));
       }
 
-      function revealStep(step) {
-        zones
-          .filter((zone) => zone.data.animation.step === step)
-          .forEach(reveal);
+      function buildRevealBatches(items) {
+        const batches = new Map();
+        items.forEach((item) => {
+          const animation = item.data.animation;
+          const step = Math.max(1, Number(animation.step) || 1);
+          const delay = Math.max(0, Number(animation.delay) || 0);
+          const key = step + ":" + delay;
+          if (!batches.has(key)) {
+            batches.set(key, { key: key, step: step, delay: delay });
+          }
+        });
+        return Array.from(batches.values())
+          .sort((a, b) => a.step - b.step || a.delay - b.delay)
+          .map((batch, index) => ({ ...batch, index: index }));
+      }
+
+      function getRevealBatchIndex(step, delay) {
+        return revealBatchIndex.get(step + ":" + delay) ?? 0;
+      }
+
+      function getEntryRevealBatchIndex(zoneEntry) {
+        const animation = zoneEntry.data.animation;
+        const step = Math.max(1, Number(animation.step) || 1);
+        const delay = Math.max(0, Number(animation.delay) || 0);
+        return getRevealBatchIndex(step, delay);
+      }
+
+      function getFirstRevealBatchIndexForStep(step) {
+        const batch = revealBatches.find((item) => item.step === step);
+        return batch ? batch.index : 0;
+      }
+
+      function getDelayedRevealBatchesForStep(step) {
+        return revealBatches.filter((batch) => batch.step === step && batch.delay > 0);
+      }
+
+      function getFocusAppearance(presentation, depth) {
+        if (!presentation || !presentation.enabled) {
+          return null;
+        }
+        if (depth <= 0) {
+          return {
+            opacity: 1,
+            scale: presentation.activeScale,
+            blur: presentation.activeBlur,
+            brightness: 1,
+            contrast: 1,
+            veil: 0,
+          };
+        }
+        const extraDepth = Math.max(0, depth - 1);
+        return {
+          opacity: Math.max(0.02, Math.min(1, presentation.settledOpacity - extraDepth * presentation.settledOpacityStep)),
+          scale: Math.max(0.55, Math.min(1, presentation.settledScale - extraDepth * presentation.settledScaleStep)),
+          blur: Math.max(0, Math.min(12, presentation.settledBlur + extraDepth * presentation.settledBlurStep)),
+          brightness: Math.max(0.35, 0.72 - extraDepth * 0.08),
+          contrast: Math.max(0.85, 0.96 - extraDepth * 0.03),
+          veil: Math.min(0.4, 0.22 + extraDepth * 0.07),
+        };
+      }
+
+      function getFocusActiveTransform(zoneEntry, focusAppearance) {
+        const stageWidth = stage.clientWidth;
+        const stageHeight = stage.clientHeight;
+        const zoneWidth = zoneEntry.element.offsetWidth;
+        const zoneHeight = zoneEntry.element.offsetHeight;
+        if (!stageWidth || !stageHeight || !zoneWidth || !zoneHeight) {
+          return buildTransform(0, 0, focusAppearance.scale, 0);
+        }
+
+        const zoneCenterX = zoneEntry.element.offsetLeft + zoneWidth / 2;
+        const zoneCenterY = zoneEntry.element.offsetTop + zoneHeight / 2;
+        const targetScale = Math.min((stageWidth * 0.72) / zoneWidth, (stageHeight * 0.72) / zoneHeight);
+        const scale = Math.max(focusAppearance.scale, Math.min(2.4, Math.max(1.15, targetScale)));
+        return buildTransform(stageWidth / 2 - zoneCenterX, stageHeight / 2 - zoneCenterY, scale, 0);
+      }
+
+      function applyPlaybackAppearance(zoneEntry, mode, useRevealDelay, currentStep, currentRevealIndex) {
+        const animation = zoneEntry.data.animation;
+        const focusPresentation = animation.focusPresentation || null;
+        const hasFocus = Boolean(focusPresentation && focusPresentation.enabled);
+        const revealIndex =
+          typeof currentRevealIndex === "number" ? currentRevealIndex : getFirstRevealBatchIndexForStep(currentStep);
+        const entryRevealIndex = getEntryRevealBatchIndex(zoneEntry);
+        const focusDepth = hasFocus && mode === "settled" ? Math.max(1, revealIndex - entryRevealIndex) : 0;
+        const focusAppearance = hasFocus ? getFocusAppearance(focusPresentation, focusDepth) : null;
+        const transitionDelay = mode === "active" && useRevealDelay ? animation.delay + "ms" : "0ms";
+        const transitionDuration = focusAppearance
+          ? Math.max(1100, Math.round(animation.duration * 1.45))
+          : animation.duration;
+        let opacity = 1;
+        let transform = "translate(0px, 0px) scale(1) rotate(0deg)";
+        let filter = "blur(0px)";
+        let boxShadow = "none";
+        let zIndex = "1";
+
+        if (mode === "hidden") {
+          opacity = 0;
+          zIndex = "0";
+          transform = buildTransform(
+            hiddenOffsetX(animation.effect, animation.offsetX),
+            hiddenOffsetY(animation.effect, animation.offsetY),
+            hiddenScale(animation.effect, animation.scaleFrom),
+            hiddenRotation(animation.effect, animation.rotateFrom)
+          );
+          filter = "blur(" + hiddenBlur(animation.effect) + "px)";
+        } else if (focusAppearance && mode === "settled") {
+          opacity = focusAppearance.opacity;
+          transform = buildTransform(0, 0, 1, 0);
+          filter = "blur(" + focusAppearance.blur + "px) brightness(" + focusAppearance.brightness + ") contrast(" + focusAppearance.contrast + ") saturate(0.78)";
+          boxShadow = "inset 0 0 0 9999px rgba(0, 0, 0, " + focusAppearance.veil + ")";
+        } else if (focusAppearance && mode === "active") {
+          opacity = 1;
+          zIndex = "50";
+          transform = getFocusActiveTransform(zoneEntry, focusAppearance);
+          filter = "blur(" + focusAppearance.blur + "px) brightness(1.03) contrast(1.04) saturate(1)";
+          boxShadow = "0 20px 70px rgba(0, 0, 0, 0.28)";
+        }
+
+        zoneEntry.element.style.opacity = String(opacity);
+        zoneEntry.element.style.transform = transform;
+        zoneEntry.element.style.filter = filter;
+        zoneEntry.element.style.boxShadow = boxShadow;
+        zoneEntry.element.style.zIndex = zIndex;
+        zoneEntry.element.style.transitionDuration = transitionDuration + "ms";
+        zoneEntry.element.style.transitionDelay = transitionDelay;
+        zoneEntry.element.style.transitionTimingFunction = "cubic-bezier(0.22, 1, 0.36, 1)";
+        zoneEntry.element.style.transitionProperty = "opacity, transform, filter, box-shadow";
+        zoneEntry.element.classList.toggle("focus-settled", Boolean(focusAppearance && mode === "settled"));
+        zoneEntry.element.classList.toggle("focus-active", Boolean(focusAppearance && mode === "active"));
+      }
+
+      function applyStepState(step, useRevealDelay) {
+        const currentRevealIndex = getFirstRevealBatchIndexForStep(step);
+        zones.forEach((zoneEntry) => {
+          const zoneStep = Math.max(1, Number(zoneEntry.data.animation.step) || 1);
+          if (zoneStep > step) {
+            applyPlaybackAppearance(zoneEntry, "hidden", false, step, currentRevealIndex);
+            return;
+          }
+          if (zoneStep < step) {
+            applyPlaybackAppearance(zoneEntry, "settled", false, step, currentRevealIndex);
+            return;
+          }
+          applyPlaybackAppearance(zoneEntry, "active", useRevealDelay, step, currentRevealIndex);
+        });
+        scheduleFocusSettlingForStep(step);
       }
 
       function revealAll() {
-        zones.forEach(reveal);
+        clearFocusTimers();
+        clearFinalRevealTimer();
+        zones.forEach((zoneEntry) => {
+          applyPlaybackAppearance(zoneEntry, "final", false, Number.MAX_SAFE_INTEGER);
+        });
+      }
+
+      function clearFocusTimers() {
+        focusTimers.forEach((timer) => window.clearTimeout(timer));
+        focusTimers = [];
+      }
+
+      function clearFinalRevealTimer() {
+        if (finalRevealTimer) {
+          window.clearTimeout(finalRevealTimer);
+          finalRevealTimer = null;
+        }
+      }
+
+      function scheduleFocusSettlingForStep(step) {
+        clearFocusTimers();
+        getDelayedRevealBatchesForStep(step).forEach((batch) => {
+          focusTimers.push(window.setTimeout(() => applyFocusSettlingForRevealBatch(batch.index, batch.step), batch.delay));
+        });
+      }
+
+      function applyFocusSettlingForRevealBatch(currentRevealIndex, currentStep) {
+        zones.forEach((zoneEntry) => {
+          const focusPresentation = zoneEntry.data.animation.focusPresentation || null;
+          if (!focusPresentation || !focusPresentation.enabled) {
+            return;
+          }
+          const entryRevealIndex = getEntryRevealBatchIndex(zoneEntry);
+          if (entryRevealIndex < currentRevealIndex) {
+            applyPlaybackAppearance(zoneEntry, "settled", false, currentStep, currentRevealIndex);
+          }
+        });
+      }
+
+      function scheduleFinalReveal(currentStep) {
+        clearFinalRevealTimer();
+        const delay = Math.max(0, currentStep.duration) + Math.max(0, payload.settings.autoStepGap || 0);
+        finalRevealTimer = window.setTimeout(() => {
+          revealAll();
+        }, delay);
+      }
+
+      function completeFinalReveal() {
+        revealAll();
       }
 
       function advance() {
         if (currentStepIndex >= stepSchedule.length) {
+          completeFinalReveal();
           return;
         }
 
         const currentStep = stepSchedule[currentStepIndex];
-        revealStep(currentStep.step);
+        applyStepState(currentStep.step, true);
 
         if (payload.settings.stepMode === "auto") {
           currentStepIndex += 1;
           if (currentStepIndex < stepSchedule.length) {
             const delay = currentStep.duration + Math.max(0, payload.settings.autoStepGap || 0);
             autoTimer = window.setTimeout(advance, delay);
+          } else {
+            scheduleFinalReveal(currentStep);
           }
           return;
         }
@@ -3652,6 +3973,8 @@ function buildExportHtml(payload) {
         if (autoTimer) {
           clearTimeout(autoTimer);
         }
+        clearFocusTimers();
+        clearFinalRevealTimer();
       });
     </script>
   </body>
@@ -3668,51 +3991,247 @@ function createRuntimeController(stageElement, payload, options = {}) {
       return { data: zone, element };
     })
     .filter(Boolean);
+  const focusZoneCount = entries.filter((entry) => entry.data.animation.focusPresentation?.enabled).length;
 
   let active = true;
   let started = false;
   const stepSchedule = buildStepSchedule(entries);
+  const revealBatches = buildRevealBatches(entries);
+  const revealBatchIndex = new Map(revealBatches.map((batch) => [batch.key, batch.index]));
   let currentStepIndex = 0;
   let timer = null;
+  let focusTimers = [];
+  let finalRevealTimer = null;
 
-  entries.forEach((entry) => applyZonePreviewAppearance(entry.element, { animation: entry.data.animation }, false));
+  entries.forEach((entry) => applyPlaybackAppearance(entry, "hidden"));
 
-  function revealStep(step) {
-    entries
-      .filter((entry) => entry.data.animation.step === step)
-      .forEach((entry) => {
-        applyZonePreviewAppearance(entry.element, { animation: entry.data.animation }, true);
-      });
+  function buildRevealBatches(items) {
+    const batches = new Map();
+    items.forEach((item) => {
+      const animation = item.data.animation;
+      const step = Math.max(1, Number(animation.step) || 1);
+      const delay = Math.max(0, Number(animation.delay) || 0);
+      const key = `${step}:${delay}`;
+      if (!batches.has(key)) {
+        batches.set(key, { key, step, delay });
+      }
+    });
+    return [...batches.values()]
+      .sort((a, b) => a.step - b.step || a.delay - b.delay)
+      .map((batch, index) => ({ ...batch, index }));
+  }
+
+  function getRevealBatchIndex(step, delay) {
+    return revealBatchIndex.get(`${step}:${delay}`) ?? 0;
+  }
+
+  function getEntryRevealBatchIndex(entry) {
+    const animation = entry.data.animation;
+    const step = Math.max(1, Number(animation.step) || 1);
+    const delay = Math.max(0, Number(animation.delay) || 0);
+    return getRevealBatchIndex(step, delay);
+  }
+
+  function getFirstRevealBatchIndexForStep(step) {
+    return revealBatches.find((batch) => batch.step === step)?.index ?? 0;
+  }
+
+  function getDelayedRevealBatchesForStep(step) {
+    return revealBatches.filter((batch) => batch.step === step && batch.delay > 0);
+  }
+
+  function getFocusAppearance(presentation, depth) {
+    const sanitized = sanitizeGroupPresentation(presentation);
+    if (!sanitized.enabled) {
+      return null;
+    }
+    if (depth <= 0) {
+      return {
+        opacity: 1,
+        scale: sanitized.activeScale,
+        blur: sanitized.activeBlur,
+        brightness: 1,
+        contrast: 1,
+        veil: 0,
+      };
+    }
+    const extraDepth = Math.max(0, depth - 1);
+    return {
+      opacity: clamp(sanitized.settledOpacity - extraDepth * sanitized.settledOpacityStep, 0.02, 1),
+      scale: clamp(sanitized.settledScale - extraDepth * sanitized.settledScaleStep, 0.55, 1),
+      blur: clamp(sanitized.settledBlur + extraDepth * sanitized.settledBlurStep, 0, 12),
+      brightness: Math.max(0.35, 0.72 - extraDepth * 0.08),
+      contrast: Math.max(0.85, 0.96 - extraDepth * 0.03),
+      veil: Math.min(0.4, 0.22 + extraDepth * 0.07),
+    };
+  }
+
+  function getFocusActiveTransform(entry, focusAppearance) {
+    const stageWidth = stageElement.clientWidth;
+    const stageHeight = stageElement.clientHeight;
+    const zoneWidth = entry.element.offsetWidth;
+    const zoneHeight = entry.element.offsetHeight;
+    if (!stageWidth || !stageHeight || !zoneWidth || !zoneHeight) {
+      return buildTransform(0, 0, focusAppearance.scale, 0);
+    }
+
+    const zoneCenterX = entry.element.offsetLeft + zoneWidth / 2;
+    const zoneCenterY = entry.element.offsetTop + zoneHeight / 2;
+    const targetScale = Math.min((stageWidth * 0.72) / zoneWidth, (stageHeight * 0.72) / zoneHeight);
+    const scale = Math.max(focusAppearance.scale, Math.min(2.4, Math.max(1.15, targetScale)));
+    return buildTransform(stageWidth / 2 - zoneCenterX, stageHeight / 2 - zoneCenterY, scale, 0);
+  }
+
+  function applyPlaybackAppearance(entry, mode, useRevealDelay = false, currentStep = 1, currentRevealIndex) {
+    const animation = entry.data.animation;
+    const focusPresentation = animation.focusPresentation || null;
+    const hasFocus = Boolean(focusPresentation?.enabled);
+    const revealIndex =
+      typeof currentRevealIndex === "number" ? currentRevealIndex : getFirstRevealBatchIndexForStep(currentStep);
+    const entryRevealIndex = getEntryRevealBatchIndex(entry);
+    const focusDepth = hasFocus && mode === "settled" ? Math.max(1, revealIndex - entryRevealIndex) : 0;
+    const focusAppearance = hasFocus ? getFocusAppearance(focusPresentation, focusDepth) : null;
+    const transitionDelay = mode === "active" && useRevealDelay ? `${Math.max(0, animation.delay)}ms` : "0ms";
+    const transitionDuration = focusAppearance
+      ? Math.max(1100, Math.round(animation.duration * 1.45))
+      : animation.duration;
+    let opacity = 1;
+    let transform = "translate(0px, 0px) scale(1) rotate(0deg)";
+    let filter = "blur(0px)";
+    let boxShadow = "none";
+    let zIndex = "1";
+
+    if (mode === "hidden") {
+      const hiddenState = getZoneVisualState(animation, false);
+      opacity = hiddenState.opacity;
+      transform = hiddenState.transform;
+      filter = hiddenState.filter;
+      zIndex = "0";
+    } else if (focusAppearance && mode === "settled") {
+      opacity = focusAppearance.opacity;
+      transform = buildTransform(0, 0, 1, 0);
+      filter = `blur(${focusAppearance.blur}px) brightness(${focusAppearance.brightness}) contrast(${focusAppearance.contrast}) saturate(0.78)`;
+      boxShadow = `inset 0 0 0 9999px rgba(0, 0, 0, ${focusAppearance.veil})`;
+    } else if (focusAppearance && mode === "active") {
+      opacity = 1;
+      zIndex = "50";
+      transform = getFocusActiveTransform(entry, focusAppearance);
+      filter = `blur(${focusAppearance.blur}px) brightness(1.03) contrast(1.04) saturate(1)`;
+      boxShadow = "0 20px 70px rgba(0, 0, 0, 0.28)";
+    }
+
+    entry.element.style.opacity = String(opacity);
+    entry.element.style.transform = transform;
+    entry.element.style.filter = filter;
+    entry.element.style.boxShadow = boxShadow;
+    entry.element.style.zIndex = zIndex;
+    entry.element.style.transitionDuration = `${transitionDuration}ms`;
+    entry.element.style.transitionDelay = transitionDelay;
+    entry.element.style.transitionTimingFunction = "cubic-bezier(0.22, 1, 0.36, 1)";
+    entry.element.style.transitionProperty = "opacity, transform, filter, box-shadow";
+    entry.element.classList.toggle("focus-settled", Boolean(focusAppearance && mode === "settled"));
+    entry.element.classList.toggle("focus-active", Boolean(focusAppearance && mode === "active"));
+  }
+
+  function applyStepState(currentStep, useRevealDelay = true) {
+    const currentRevealIndex = getFirstRevealBatchIndexForStep(currentStep);
+    entries.forEach((entry) => {
+      const step = Math.max(1, Number(entry.data.animation.step) || 1);
+      if (step > currentStep) {
+        applyPlaybackAppearance(entry, "hidden", false, currentStep, currentRevealIndex);
+        return;
+      }
+      if (step < currentStep) {
+        applyPlaybackAppearance(entry, "settled", false, currentStep, currentRevealIndex);
+        return;
+      }
+      applyPlaybackAppearance(entry, "active", useRevealDelay, currentStep, currentRevealIndex);
+    });
+    scheduleFocusSettlingForStep(currentStep);
   }
 
   function revealAll() {
+    clearFocusTimers();
+    clearFinalRevealTimer();
     entries.forEach((entry) => {
-      applyZonePreviewAppearance(entry.element, { animation: entry.data.animation }, true);
+      applyPlaybackAppearance(entry, "final", false, Number.MAX_SAFE_INTEGER);
     });
+  }
+
+  function clearFocusTimers() {
+    focusTimers.forEach((focusTimer) => window.clearTimeout(focusTimer));
+    focusTimers = [];
+  }
+
+  function clearFinalRevealTimer() {
+    if (finalRevealTimer) {
+      window.clearTimeout(finalRevealTimer);
+      finalRevealTimer = null;
+    }
+  }
+
+  function scheduleFocusSettlingForStep(currentStep) {
+    clearFocusTimers();
+    getDelayedRevealBatchesForStep(currentStep).forEach((batch) => {
+      focusTimers.push(window.setTimeout(() => applyFocusSettlingForRevealBatch(batch.index, batch.step), batch.delay));
+    });
+  }
+
+  function applyFocusSettlingForRevealBatch(currentRevealIndex, currentStep) {
+    entries.forEach((entry) => {
+      const focusPresentation = entry.data.animation.focusPresentation || null;
+      if (!focusPresentation?.enabled) {
+        return;
+      }
+      const entryRevealIndex = getEntryRevealBatchIndex(entry);
+      if (entryRevealIndex < currentRevealIndex) {
+        applyPlaybackAppearance(entry, "settled", false, currentStep, currentRevealIndex);
+      }
+    });
+  }
+
+  function scheduleFinalReveal(currentStep) {
+    clearFinalRevealTimer();
+    const delay = Math.max(0, currentStep.duration) + Math.max(0, payload.settings.autoStepGap || 0);
+    finalRevealTimer = window.setTimeout(() => {
+      completeFinalReveal();
+    }, delay);
+  }
+
+  function completeFinalReveal() {
+    revealAll();
+    if (options.onStatus) {
+      options.onStatus("Infographie complete revelee.");
+    }
   }
 
   function advance() {
     if (!active || currentStepIndex >= stepSchedule.length) {
+      if (active && currentStepIndex >= stepSchedule.length) {
+        completeFinalReveal();
+      }
       return;
     }
 
     const currentStep = stepSchedule[currentStepIndex];
-    revealStep(currentStep.step);
+    applyStepState(currentStep.step, true);
 
     if (payload.settings.stepMode === "auto") {
       currentStepIndex += 1;
       if (currentStepIndex < stepSchedule.length) {
         const delay = currentStep.duration + Math.max(0, payload.settings.autoStepGap || 0);
         timer = window.setTimeout(advance, delay);
-      } else if (options.onStatus) {
-        options.onStatus("Apercu termine.");
+      } else {
+        scheduleFinalReveal(currentStep);
       }
       return;
     }
 
     currentStepIndex += 1;
-    if (currentStepIndex >= stepSchedule.length && options.onStatus) {
-      options.onStatus("Apercu termine.");
+    if (currentStepIndex >= stepSchedule.length) {
+      if (options.onStatus) {
+        options.onStatus("Derniere zone revelee. Presse encore une touche pour afficher toute l'infographie.");
+      }
     }
   }
 
@@ -3722,7 +4241,7 @@ function createRuntimeController(stageElement, payload, options = {}) {
     }
     started = true;
     if (options.onStatus) {
-      options.onStatus("Animation lancee.");
+      options.onStatus(`Animation lancee.${getRuntimeFocusStatusSuffix()}`);
     }
     if (payload.settings.stepMode === "all") {
       revealAll();
@@ -3742,10 +4261,14 @@ function createRuntimeController(stageElement, payload, options = {}) {
     if (options.onStatus) {
       options.onStatus(
         payload.settings.startTrigger === "click"
-          ? "Apercu arme. Clique dans la scene pour demarrer."
-          : "Apercu arme. Presse une touche pour demarrer."
+          ? `Apercu arme. Clique dans la scene pour demarrer.${getRuntimeFocusStatusSuffix()}`
+          : `Apercu arme. Presse une touche pour demarrer.${getRuntimeFocusStatusSuffix()}`
       );
     }
+  }
+
+  function getRuntimeFocusStatusSuffix() {
+    return focusZoneCount ? ` Focus detecte: ${focusZoneCount} zone(s).` : " Aucun focus detecte.";
   }
 
   function handleInteraction(kind) {
@@ -3776,6 +4299,8 @@ function createRuntimeController(stageElement, payload, options = {}) {
     if (timer) {
       window.clearTimeout(timer);
     }
+    clearFocusTimers();
+    clearFinalRevealTimer();
   }
 
   return {

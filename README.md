@@ -125,6 +125,22 @@ Le groupe apparait alors de maniere synchronisee, avec un decalage progressif pr
 
 Chaque zone d'un meme evenement peut conserver son propre effet d'apparition. Le groupe sert surtout a partager une etape commune et un decalage temporel, pas a imposer obligatoirement le meme effet visuel a tous les membres.
 
+Chaque groupe dispose aussi d'un reglage de focus visuel:
+
+- les zones deja apparues peuvent passer dans un etat plus discret,
+- leur opacite et leur echelle peuvent etre reduites,
+- un flou leger peut s'ajouter pour baisser la presence visuelle,
+- la zone qui apparait peut etre legerement agrandie pour rester lisible.
+
+Ce reglage est pratique sur les infographies denses, quand il faut garder le contexte sans laisser tout le visuel dominer la lecture.
+
+Presets rapides disponibles pour ce focus:
+
+- `Discret`
+- `Standard`
+- `Fort`
+- `Infographie dense`
+
 ### Presets de presentation
 
 Des presets plus scenarises sont disponibles pour appliquer rapidement une ambiance globale :

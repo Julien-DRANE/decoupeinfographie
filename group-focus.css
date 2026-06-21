@@ -1,0 +1,51 @@
+.group-focus-card {
+  margin-top: 12px;
+  padding: 12px;
+  border-radius: 14px;
+  background: rgba(31, 27, 22, 0.035);
+}
+
+.group-focus-card.collapsed {
+  display: none !important;
+}
+
+.group-focus-toggle {
+  margin-bottom: 10px;
+}
+
+.group-focus-controls {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.group-focus-presets {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 10px 0 0;
+}
+
+.group-focus-preset {
+  border: 0;
+  border-radius: 999px;
+  padding: 8px 10px;
+  font: inherit;
+  cursor: pointer;
+  background: rgba(31, 27, 22, 0.08);
+}
+
+.group-focus-preset.active {
+  background: rgba(217, 93, 57, 0.16);
+  color: var(--accent-dark);
+}
+
+.group-focus-controls .mini-field input {
+  min-width: 0;
+}
+
+@media (max-width: 640px) {
+  .group-focus-controls {
+    grid-template-columns: 1fr;
+  }
+}
