@@ -3915,11 +3915,11 @@ function buildExportHtml(payload) {
         return zones.filter((zoneEntry) => ids.has(zoneEntry.data.id));
       }
 
-      function getRecapTransform(zoneEntry, recapEntries) {
+      function getRecapLayout(zoneEntry, recapEntries) {
         const stageWidth = stage.clientWidth;
         const stageHeight = stage.clientHeight;
         if (!stageWidth || !stageHeight || !recapEntries.length) {
-          return buildTransform(0, 0, 1, 0);
+          return { transform: buildTransform(0, 0, 1, 0), origin: "center center" };
         }
         const bounds = recapEntries.reduce((acc, recapEntry) => {
           const width = recapEntry.element.offsetWidth;
@@ -3936,10 +3936,13 @@ function buildExportHtml(payload) {
         const groupWidth = Math.max(1, bounds.right - bounds.left);
         const groupHeight = Math.max(1, bounds.bottom - bounds.top);
         const targetScale = Math.min((stageWidth * 0.76) / groupWidth, (stageHeight * 0.76) / groupHeight);
-        const scale = Math.max(0.62, Math.min(2.1, targetScale));
+        const scale = Math.max(0.62, Math.min(1, targetScale));
         const groupCenterX = bounds.left + groupWidth / 2;
         const groupCenterY = bounds.top + groupHeight / 2;
-        return buildTransform(stageWidth / 2 - groupCenterX, stageHeight / 2 - groupCenterY, scale, 0);
+        return {
+          transform: buildTransform(stageWidth / 2 - groupCenterX, stageHeight / 2 - groupCenterY, scale, 0),
+          origin: (groupCenterX - zoneEntry.element.offsetLeft) + "px " + (groupCenterY - zoneEntry.element.offsetTop) + "px",
+        };
       }
 
       function applyPlaybackAppearance(zoneEntry, mode, useRevealDelay, currentStep, currentRevealIndex, recapEntries) {
@@ -3962,6 +3965,7 @@ function buildExportHtml(payload) {
         let filter = "blur(0px)";
         let boxShadow = "none";
         let zIndex = "1";
+        let transformOrigin = "center center";
 
         if (mode === "hidden") {
           opacity = 0;
@@ -3985,14 +3989,17 @@ function buildExportHtml(payload) {
           filter = "blur(" + focusAppearance.blur + "px) brightness(1.03) contrast(1.04) saturate(1)";
           boxShadow = "0 20px 70px rgba(0, 0, 0, 0.28)";
         } else if (mode === "recap") {
+          const recapLayout = getRecapLayout(zoneEntry, recapEntries || []);
           opacity = 1;
           zIndex = "70";
-          transform = getRecapTransform(zoneEntry, recapEntries || []);
+          transform = recapLayout.transform;
+          transformOrigin = recapLayout.origin;
           filter = "blur(0px) brightness(1.03) contrast(1.04) saturate(1)";
-          boxShadow = "0 18px 60px rgba(0, 0, 0, 0.2)";
+          boxShadow = "none";
         }
 
         zoneEntry.element.style.opacity = String(opacity);
+        zoneEntry.element.style.transformOrigin = transformOrigin;
         zoneEntry.element.style.transform = transform;
         zoneEntry.element.style.filter = filter;
         zoneEntry.element.style.boxShadow = boxShadow;
@@ -4310,11 +4317,11 @@ function createRuntimeController(stageElement, payload, options = {}) {
     return buildTransform(stageWidth / 2 - zoneCenterX, stageHeight / 2 - zoneCenterY, scale, 0);
   }
 
-  function getRecapTransform(entry, recapEntries) {
+  function getRecapLayout(entry, recapEntries) {
     const stageWidth = stageElement.clientWidth;
     const stageHeight = stageElement.clientHeight;
     if (!stageWidth || !stageHeight || !recapEntries.length) {
-      return buildTransform(0, 0, 1, 0);
+      return { transform: buildTransform(0, 0, 1, 0), origin: "center center" };
     }
 
     const bounds = recapEntries.reduce(
@@ -4335,10 +4342,13 @@ function createRuntimeController(stageElement, payload, options = {}) {
     const groupWidth = Math.max(1, bounds.right - bounds.left);
     const groupHeight = Math.max(1, bounds.bottom - bounds.top);
     const targetScale = Math.min((stageWidth * 0.76) / groupWidth, (stageHeight * 0.76) / groupHeight);
-    const scale = clamp(targetScale, 0.62, 2.1);
+    const scale = clamp(targetScale, 0.62, 1);
     const groupCenterX = bounds.left + groupWidth / 2;
     const groupCenterY = bounds.top + groupHeight / 2;
-    return buildTransform(stageWidth / 2 - groupCenterX, stageHeight / 2 - groupCenterY, scale, 0);
+    return {
+      transform: buildTransform(stageWidth / 2 - groupCenterX, stageHeight / 2 - groupCenterY, scale, 0),
+      origin: `${groupCenterX - entry.element.offsetLeft}px ${groupCenterY - entry.element.offsetTop}px`,
+    };
   }
 
   function getRecapEntries(group) {
@@ -4366,6 +4376,7 @@ function createRuntimeController(stageElement, payload, options = {}) {
     let filter = "blur(0px)";
     let boxShadow = "none";
     let zIndex = "1";
+    let transformOrigin = "center center";
 
     if (mode === "hidden") {
       const hiddenState = getZoneVisualState(animation, false);
@@ -4385,14 +4396,17 @@ function createRuntimeController(stageElement, payload, options = {}) {
       filter = `blur(${focusAppearance.blur}px) brightness(1.03) contrast(1.04) saturate(1)`;
       boxShadow = "0 20px 70px rgba(0, 0, 0, 0.28)";
     } else if (mode === "recap") {
+      const recapLayout = getRecapLayout(entry, recapEntries);
       opacity = 1;
       zIndex = "70";
-      transform = getRecapTransform(entry, recapEntries);
+      transform = recapLayout.transform;
+      transformOrigin = recapLayout.origin;
       filter = "blur(0px) brightness(1.03) contrast(1.04) saturate(1)";
-      boxShadow = "0 18px 60px rgba(0, 0, 0, 0.2)";
+      boxShadow = "none";
     }
 
     entry.element.style.opacity = String(opacity);
+    entry.element.style.transformOrigin = transformOrigin;
     entry.element.style.transform = transform;
     entry.element.style.filter = filter;
     entry.element.style.boxShadow = boxShadow;
