@@ -1,7 +1,7 @@
-# Graph Report - decoupezoneimage  (2026-06-21)
+# Graph Report - decoupezoneimage  (2026-06-22)
 
 ## Corpus Check
-- 15 files · ~29,236 words
+- 15 files · ~29,307 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary

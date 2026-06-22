@@ -3584,6 +3584,9 @@ function buildExportHtml(payload) {
         overflow: hidden;
         background: transparent;
       }
+      .overlay-stage:focus {
+        outline: none;
+      }
       .anim-zone {
         position: absolute;
         display: block;
@@ -3598,7 +3601,7 @@ function buildExportHtml(payload) {
   </head>
   <body>
     <div class="overlay-root">
-      <div id="stage" class="overlay-stage"></div>
+      <div id="stage" class="overlay-stage" tabindex="0"></div>
     </div>
     <script>
       const payload = ${data};
@@ -3683,6 +3686,7 @@ function buildExportHtml(payload) {
       let autoTimer = null;
       let focusTimers = [];
       let finalRevealTimer = null;
+      let finalRevealComplete = false;
 
       function buildStepSchedule(items) {
         const steps = new Map();
@@ -3853,6 +3857,7 @@ function buildExportHtml(payload) {
       function revealAll() {
         clearFocusTimers();
         clearFinalRevealTimer();
+        finalRevealComplete = true;
         zones.forEach((zoneEntry) => {
           applyPlaybackAppearance(zoneEntry, "final", false, Number.MAX_SAFE_INTEGER);
         });
@@ -3930,6 +3935,7 @@ function buildExportHtml(payload) {
           return;
         }
         started = true;
+        finalRevealComplete = false;
         if (payload.settings.stepMode === "all") {
           revealAll();
           return;
@@ -3937,37 +3943,68 @@ function buildExportHtml(payload) {
         advance();
       }
 
+      function consumeInteractionEvent(event) {
+        event.preventDefault();
+        event.stopPropagation();
+        if (typeof event.stopImmediatePropagation === "function") {
+          event.stopImmediatePropagation();
+        }
+      }
+
       function handleInteraction(kind) {
+        if (finalRevealComplete) {
+          return false;
+        }
+
         if (!started) {
           const canStart =
             (payload.settings.startTrigger === "click" && kind === "click") ||
             (payload.settings.startTrigger === "key" && kind === "key");
           if (canStart) {
             beginSequence();
+            return true;
           }
-          return;
+          return false;
         }
 
         if (payload.settings.stepMode === "click" && kind === "click") {
           advance();
+          return true;
         }
         if (payload.settings.stepMode === "key" && kind === "key") {
           advance();
+          return true;
         }
+        return false;
       }
 
-      stage.addEventListener("click", () => handleInteraction("click"));
+      stage.addEventListener(
+        "click",
+        (event) => {
+          stage.focus({ preventScroll: true });
+          if (handleInteraction("click")) {
+            consumeInteractionEvent(event);
+          }
+        },
+        true
+      );
       window.addEventListener("keydown", (event) => {
         const target = event.target;
         if (target && (target.tagName === "INPUT" || target.tagName === "TEXTAREA" || target.tagName === "SELECT")) {
           return;
         }
-        handleInteraction("key");
-      });
+        if (handleInteraction("key")) {
+          consumeInteractionEvent(event);
+        }
+      }, true);
 
       if (payload.settings.startTrigger === "slide") {
         beginSequence();
       }
+
+      window.requestAnimationFrame(() => {
+        stage.focus({ preventScroll: true });
+      });
 
       window.addEventListener("beforeunload", () => {
         if (autoTimer) {
