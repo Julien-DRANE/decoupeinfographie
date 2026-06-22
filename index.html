@@ -338,11 +338,30 @@
                   Selectionne plusieurs zones avec Ctrl puis cree un groupe d'apparition.
                 </article>
               </div>
+              <div class="embedded-order-panel recap-panel">
+                <div class="panel-header compact-panel-header">
+                  <div>
+                    <h2>Groupes recap</h2>
+                  </div>
+                  <div class="zones-actions">
+                    <button id="createRecapGroupButton" class="btn btn-secondary" disabled>
+                      Creer un recap
+                    </button>
+                    <button id="removeSelectedFromRecapGroupButton" class="btn btn-secondary" disabled>
+                      Retirer du recap
+                    </button>
+                  </div>
+                </div>
+                <div id="recapGroupsList" class="groups-list">
+                  <article class="empty-state">
+                    Selectionne 2 zones ou plus.
+                  </article>
+                </div>
+              </div>
               <div class="embedded-order-panel">
                 <div class="panel-header compact-panel-header">
                   <div>
-                    <h2>Ordre des zones</h2>
-                    <p>Glisse les zones par leur poignee pour reorganiser la narration plus vite.</p>
+                  <h2>Ordre des zones</h2>
                   </div>
                 </div>
                 <div id="zonesOrderList" class="groups-list zones-order-list">
@@ -357,7 +376,6 @@
               <div class="panel-header">
                 <div>
                   <h2>Groupes de focus</h2>
-                  <p>Zones deja revelees que l'on atténue, floute ou agrandit legerement pour la suite.</p>
                 </div>
                 <div class="zones-actions">
                   <button id="createFocusGroupButton" class="btn btn-secondary" disabled>
@@ -370,7 +388,7 @@
               </div>
               <div id="focusGroupsList" class="groups-list">
                 <article class="empty-state">
-                  Selectionne une ou plusieurs zones puis mets-les en focus pour atténuer ce qui a deja ete presente.
+                  Selectionne une ou plusieurs zones.
                 </article>
               </div>
             </section>
@@ -562,6 +580,7 @@
           <p class="zone-position"></p>
           <p class="zone-step"></p>
           <p class="zone-focus-state"></p>
+          <p class="zone-recap-state"></p>
         </div>
         <div class="zone-card-actions">
           <button class="btn btn-tertiary zone-edit">Regler</button>

@@ -76,6 +76,7 @@ const state = {
   groups: [],
   selectedGroupId: null,
   selectedFocusGroupId: null,
+  selectedRecapGroupId: null,
   expandedFocusGroupIds: [],
   detectionProfile: presets.balanced,
   selectedZoneId: null,
@@ -131,6 +132,8 @@ const createTimingGroupButton = document.querySelector("#createTimingGroupButton
 const removeSelectedFromTimingGroupButton = document.querySelector("#removeSelectedFromTimingGroupButton");
 const createFocusGroupButton = document.querySelector("#createFocusGroupButton");
 const removeSelectedFromFocusGroupButton = document.querySelector("#removeSelectedFromFocusGroupButton");
+const createRecapGroupButton = document.querySelector("#createRecapGroupButton");
+const removeSelectedFromRecapGroupButton = document.querySelector("#removeSelectedFromRecapGroupButton");
 const presetCascadeButton = document.querySelector("#presetCascadeButton");
 const presetOrganicButton = document.querySelector("#presetOrganicButton");
 const presetFloralButton = document.querySelector("#presetFloralButton");
@@ -142,6 +145,7 @@ const toggleZoneLockButton = document.querySelector("#toggleZoneLockButton");
 const zonesGrid = document.querySelector("#zonesGrid");
 const timingGroupsList = document.querySelector("#timingGroupsList");
 const focusGroupsList = document.querySelector("#focusGroupsList");
+const recapGroupsList = document.querySelector("#recapGroupsList");
 const zonesOrderList = document.querySelector("#zonesOrderList");
 const controlsPanel = document.querySelector(".controls");
 const animationStage = document.querySelector("#animationStage");
@@ -223,6 +227,10 @@ function getZoneTimingGroupId(animation = {}) {
 
 function getZoneFocusGroupId(animation = {}) {
   return typeof animation.focusGroupId === "string" && animation.focusGroupId ? animation.focusGroupId : null;
+}
+
+function getZoneRecapGroupId(animation = {}) {
+  return typeof animation.recapGroupId === "string" && animation.recapGroupId ? animation.recapGroupId : null;
 }
 
 function getGroupById(groupId) {
@@ -421,6 +429,7 @@ imageInput.addEventListener("change", async (event) => {
     state.groups = [];
     state.selectedGroupId = null;
     state.selectedFocusGroupId = null;
+    state.selectedRecapGroupId = null;
     state.selectedZoneId = null;
     state.selectedZoneIds = [];
 
@@ -551,6 +560,14 @@ createFocusGroupButton.addEventListener("click", () => {
 
 removeSelectedFromFocusGroupButton.addEventListener("click", () => {
   removeSelectedZoneFromFocusGroup();
+});
+
+createRecapGroupButton.addEventListener("click", () => {
+  createNewRecapGroup();
+});
+
+removeSelectedFromRecapGroupButton.addEventListener("click", () => {
+  removeSelectedZoneFromRecapGroup();
 });
 
 animationStage.addEventListener("click", (event) => {
@@ -1340,6 +1357,7 @@ function duplicateSelectedZone() {
     step: state.zones.length + 1,
     timingGroupId: null,
     focusGroupId: null,
+    recapGroupId: null,
     groupId: null,
   };
   const duplicate = createZoneAsset(box, state.zones.length, animation);
@@ -1405,6 +1423,7 @@ function deleteSelectedZones() {
 function removeZoneFromAnyGroup(zoneId, rerender = false) {
   removeZoneFromGroupsOfKind(zoneId, "timing", false);
   removeZoneFromGroupsOfKind(zoneId, "focus", false);
+  removeZoneFromGroupsOfKind(zoneId, "recap", false);
 
   if (rerender) {
     renderGroupsPanel();
@@ -1531,6 +1550,7 @@ function createZoneAsset(box, index, animationOverride = null, sourceContext = n
         delay: 0,
         timingGroupId: null,
         focusGroupId: null,
+        recapGroupId: null,
         groupId: null,
         offsetX: 0,
         offsetY: 24,
@@ -1561,6 +1581,7 @@ function renderZones(zones) {
     const position = card.querySelector(".zone-position");
     const step = card.querySelector(".zone-step");
     const focusState = card.querySelector(".zone-focus-state");
+    const recapState = card.querySelector(".zone-recap-state");
     const editButton = card.querySelector(".zone-edit");
     const downloadButton = card.querySelector(".zone-download");
     const timingGroupButton = card.querySelector(".zone-group-timing");
@@ -1603,8 +1624,11 @@ function renderZones(zones) {
 
     const hasMultiSelection = state.selectedZoneIds.length >= 2;
     const isFocusZone = Boolean(getZoneFocusGroupId(zone.animation));
+    const isRecapZone = Boolean(getZoneRecapGroupId(zone.animation));
     focusState.textContent = isFocusZone ? "Mode focus actif" : "Mode focus inactif";
     focusState.classList.toggle("active", isFocusZone);
+    recapState.textContent = isRecapZone ? "Recap actif" : "Aucun recap";
+    recapState.classList.toggle("active", isRecapZone);
     timingGroupButton.disabled = !hasMultiSelection;
     focusGroupButton.disabled = !zone.animation.enabled;
     focusGroupButton.textContent = isFocusZone ? "Focus actif" : "Mode focus";
@@ -1826,6 +1850,9 @@ function updateAnimationControlsState() {
   createFocusGroupButton.disabled = !hasSelectedZone;
   removeSelectedFromFocusGroupButton.disabled =
     !hasSelectedZone || getSelectedZones().every((zone) => !getZoneFocusGroupId(zone.animation));
+  createRecapGroupButton.disabled = !hasMultiSelection;
+  removeSelectedFromRecapGroupButton.disabled =
+    !hasSelectedZone || getSelectedZones().every((zone) => !getZoneRecapGroupId(zone.animation));
   autoStepGapRange.disabled = state.animationSettings.stepMode !== "auto";
   applyStepSettingsButton.disabled = !hasEnabledZones || getZonesForStep(state.stepEditor.step).length === 0;
   splitZoneAutoButton.disabled = !hasSelectedZone;
@@ -2150,7 +2177,7 @@ function clearZoneOrderDropIndicator() {
 }
 
 function syncGroupMemberOrderToZoneOrder() {
-  getGroupsByKind("timing").forEach((group) => {
+  [...getGroupsByKind("timing"), ...getGroupsByKind("recap")].forEach((group) => {
     group.zoneIds.sort((a, b) => {
       const zoneA = state.zones.find((zone) => zone.id === a);
       const zoneB = state.zones.find((zone) => zone.id === b);
@@ -2458,6 +2485,16 @@ function subdivideSelectedZone(mode) {
       }
     }
   }
+  const recapGroupId = getZoneRecapGroupId(zone.animation);
+  if (recapGroupId) {
+    const group = state.groups.find((item) => item.id === recapGroupId && item.kind === "recap");
+    if (group) {
+      const memberIndex = group.zoneIds.indexOf(zone.id);
+      if (memberIndex >= 0) {
+        group.zoneIds.splice(memberIndex, 1, ...replacementZones.map((item) => item.id));
+      }
+    }
+  }
   state.zones.splice(zoneIndex, 1, ...replacementZones);
   state.selectedZoneId = replacementZones[0].id;
   state.selectedZoneIds = replacementZones.map((item) => item.id);
@@ -2508,6 +2545,20 @@ function resetSubdivisionForSelection() {
   const parentTimingGroupId = getZoneTimingGroupId(parent.animation);
   if (parentTimingGroupId) {
     const group = state.groups.find((item) => item.id === parentTimingGroupId && item.kind === "timing");
+    if (group) {
+      const memberIndexes = group.zoneIds
+        .map((id, index) => (childIds.includes(id) ? index : -1))
+        .filter((index) => index >= 0);
+      if (memberIndexes.length) {
+        const start = memberIndexes[0];
+        group.zoneIds = group.zoneIds.filter((id) => !childIds.includes(id));
+        group.zoneIds.splice(start, 0, restoredZone.id);
+      }
+    }
+  }
+  const parentRecapGroupId = getZoneRecapGroupId(parent.animation);
+  if (parentRecapGroupId) {
+    const group = state.groups.find((item) => item.id === parentRecapGroupId && item.kind === "recap");
     if (group) {
       const memberIndexes = group.zoneIds
         .map((id, index) => (childIds.includes(id) ? index : -1))
@@ -3142,6 +3193,19 @@ function getExportPayload() {
   const fit = state.sourceImage
     ? getContainRect(state.sourceImage.width, state.sourceImage.height, format.width, format.height)
     : { x: 0, y: 0, width: format.width, height: format.height };
+  const zones = getEnabledZonesSorted().map((zone) => ({
+    id: zone.id,
+    fileName: zone.fileName,
+    dataUrl: zone.dataUrl,
+    box: {
+      x: zone.x,
+      y: zone.y,
+      width: zone.width,
+      height: zone.height,
+    },
+    placement: getZonePlacement(zone, fit, format),
+    animation: resolveZoneAnimationForExport(zone),
+  }));
 
   return {
     name: state.imageName,
@@ -3155,28 +3219,9 @@ function getExportPayload() {
         }
       : null,
     settings: { ...state.animationSettings },
-    zones: getEnabledZonesSorted().map((zone) => ({
-      id: zone.id,
-      fileName: zone.fileName,
-      dataUrl: zone.dataUrl,
-      box: {
-        x: zone.x,
-        y: zone.y,
-        width: zone.width,
-        height: zone.height,
-      },
-      placement: getZonePlacement(zone, fit, format),
-      animation: resolveZoneAnimationForExport(zone),
-    })),
-    groups: state.groups.map((group) => ({
-      id: group.id,
-      kind: group.kind ?? "timing",
-      name: group.name,
-      step: group.kind === "focus" ? undefined : group.step,
-      stagger: group.kind === "focus" ? undefined : group.stagger,
-      presentation: group.kind === "focus" ? sanitizeGroupPresentation(group.presentation) : undefined,
-      zoneIds: [...group.zoneIds],
-    })),
+    zones,
+    groups: state.groups.map(serializeGroupForProject),
+    recapGroups: buildExportRecapGroups(zones),
   };
 }
 
@@ -3214,17 +3259,56 @@ async function buildProjectPayload() {
     selectedZoneIds: [...state.selectedZoneIds],
     selectedGroupId: state.selectedGroupId,
     selectedFocusGroupId: state.selectedFocusGroupId,
+    selectedRecapGroupId: state.selectedRecapGroupId,
     zones: state.zones.map(serializeZoneForProject),
-    groups: state.groups.map((group) => ({
-      id: group.id,
-      kind: group.kind ?? "timing",
-      name: group.name,
-      step: group.kind === "focus" ? undefined : group.step,
-      stagger: group.kind === "focus" ? undefined : group.stagger,
-      presentation: group.kind === "focus" ? sanitizeGroupPresentation(group.presentation) : undefined,
-      zoneIds: [...group.zoneIds],
-    })),
+    groups: state.groups.map(serializeGroupForProject),
   };
+}
+
+function serializeGroupForProject(group) {
+  const kind = group.kind ?? "timing";
+  const serialized = {
+    id: group.id,
+    kind,
+    name: group.name,
+    zoneIds: [...group.zoneIds],
+  };
+  if (kind === "timing") {
+    serialized.step = group.step;
+    serialized.stagger = group.stagger;
+  }
+  if (kind === "focus") {
+    serialized.presentation = sanitizeGroupPresentation(group.presentation);
+  }
+  return serialized;
+}
+
+function buildExportRecapGroups(zones) {
+  const zoneById = new Map(zones.map((zone) => [zone.id, zone]));
+  return getGroupsByKind("recap")
+    .map((group, index) => {
+      const zoneIds = group.zoneIds.filter((zoneId) => zoneById.has(zoneId));
+      if (zoneIds.length < 2) {
+        return null;
+      }
+      const afterStep = zoneIds.reduce((maxStep, zoneId) => {
+        const zone = zoneById.get(zoneId);
+        return Math.max(maxStep, Math.max(1, Number(zone.animation.step) || 1));
+      }, 1);
+      const duration = zoneIds.reduce((maxDuration, zoneId) => {
+        const zone = zoneById.get(zoneId);
+        return Math.max(maxDuration, Math.max(700, Number(zone.animation.duration) || 700));
+      }, 900);
+      return {
+        id: group.id,
+        name: group.name || `Recap ${index + 1}`,
+        zoneIds,
+        afterStep,
+        duration: Math.max(900, duration),
+        order: index,
+      };
+    })
+    .filter(Boolean);
 }
 
 function serializeZoneForProject(zone) {
@@ -3283,13 +3367,19 @@ function restoreProjectState(project, image) {
     : [];
 
   state.selectedGroupId =
-    state.groups.find((group) => group.id === project.selectedGroupId)?.id ?? state.groups[0]?.id ?? null;
+    state.groups.find((group) => group.id === project.selectedGroupId && group.kind === "timing")?.id ??
+    getGroupsByKind("timing")[0]?.id ??
+    null;
   state.selectedFocusGroupId =
     state.groups.find((group) => group.id === project.selectedFocusGroupId)?.id ??
     (typeof project.selectedGroupId === "string"
       ? state.groups.find((group) => group.id === `${project.selectedGroupId}-focus`)?.id
       : null) ??
     getGroupsByKind("focus")[0]?.id ??
+    null;
+  state.selectedRecapGroupId =
+    state.groups.find((group) => group.id === project.selectedRecapGroupId)?.id ??
+    getGroupsByKind("recap")[0]?.id ??
     null;
   state.selectedZoneId = validZoneIds.has(project.selectedZoneId) ? project.selectedZoneId : state.zones[0]?.id ?? null;
   state.selectedZoneIds = Array.isArray(project.selectedZoneIds)
@@ -3417,6 +3507,7 @@ function normalizeProjectZone(zone, index) {
       delay: Math.max(0, Number(animation.delay) || 0),
       timingGroupId: getZoneTimingGroupId(animation),
       focusGroupId: getZoneFocusGroupId(animation),
+      recapGroupId: getZoneRecapGroupId(animation),
       groupId: getZoneTimingGroupId(animation),
       offsetX: Number(animation.offsetX) || 0,
       offsetY: Number.isFinite(Number(animation.offsetY)) ? Number(animation.offsetY) : defaults.offsetY ?? 0,
@@ -3434,7 +3525,7 @@ function normalizeProjectGroups(group, index, validZoneIds) {
 
   const hasLegacyPresentation =
     typeof group?.kind !== "string" && group?.presentation && Object.keys(group.presentation).length > 0;
-  const kind = group?.kind === "focus" ? "focus" : "timing";
+  const kind = ["focus", "recap"].includes(group?.kind) ? group.kind : "timing";
   const baseId = typeof group?.id === "string" && group.id ? group.id : makeId(index + 1);
   const normalized = [];
 
@@ -3459,6 +3550,15 @@ function normalizeProjectGroups(group, index, validZoneIds) {
     });
   }
 
+  if (kind === "recap") {
+    normalized.push({
+      id: baseId,
+      kind: "recap",
+      name: group?.name || `Recap ${index + 1}`,
+      zoneIds: [...zoneIds],
+    });
+  }
+
   return normalized;
 }
 
@@ -3466,7 +3566,7 @@ function structuredCloneProjectData(value) {
   return JSON.parse(JSON.stringify(value));
 }
 
-function buildStepSchedule(items) {
+function buildStepSchedule(items, recapGroups = []) {
   const steps = new Map();
 
   items.forEach((item) => {
@@ -3482,13 +3582,30 @@ function buildStepSchedule(items) {
     steps.set(step, Math.max(steps.get(step) ?? 0, endTime));
   });
 
-  return [...steps.entries()]
+  const stepEvents = [...steps.entries()]
     .sort((a, b) => a[0] - b[0])
-    .map(([step, duration]) => ({ step, duration }));
+    .map(([step, duration]) => ({ type: "step", step, duration }));
+  const recapEvents = recapGroups.map((group) => ({
+    type: "recap",
+    step: group.afterStep,
+    duration: group.duration,
+    group,
+  }));
+
+  return [...stepEvents, ...recapEvents].sort((a, b) => {
+    if (a.step !== b.step) {
+      return a.step - b.step;
+    }
+    if (a.type !== b.type) {
+      return a.type === "step" ? -1 : 1;
+    }
+    return (a.group?.order ?? 0) - (b.group?.order ?? 0);
+  });
 }
 
 function getResolvedEnabledStepCount() {
-  return buildStepSchedule(getExportPayload().zones).length;
+  const payload = getExportPayload();
+  return buildStepSchedule(payload.zones, payload.recapGroups).length;
 }
 
 function resolveZoneAnimationForExport(zone) {
@@ -3679,7 +3796,7 @@ function buildExportHtml(payload) {
 
       zones.forEach(applyHidden);
       let started = false;
-      const stepSchedule = buildStepSchedule(zones);
+      const stepSchedule = buildStepSchedule(zones, payload.recapGroups || []);
       const revealBatches = buildRevealBatches(zones);
       const revealBatchIndex = new Map(revealBatches.map((batch) => [batch.key, batch.index]));
       let currentStepIndex = 0;
@@ -3688,7 +3805,7 @@ function buildExportHtml(payload) {
       let finalRevealTimer = null;
       let finalRevealComplete = false;
 
-      function buildStepSchedule(items) {
+      function buildStepSchedule(items, recapGroups) {
         const steps = new Map();
 
         items.forEach((item) => {
@@ -3700,9 +3817,20 @@ function buildExportHtml(payload) {
           steps.set(step, Math.max(steps.get(step) || 0, endTime));
         });
 
-        return Array.from(steps.entries())
+        const stepEvents = Array.from(steps.entries())
           .sort((a, b) => a[0] - b[0])
-          .map(([step, duration]) => ({ step, duration }));
+          .map(([step, duration]) => ({ type: "step", step: step, duration: duration }));
+        const recapEvents = recapGroups.map((group) => ({
+          type: "recap",
+          step: group.afterStep,
+          duration: group.duration,
+          group: group,
+        }));
+        return stepEvents.concat(recapEvents).sort((a, b) => {
+          if (a.step !== b.step) return a.step - b.step;
+          if (a.type !== b.type) return a.type === "step" ? -1 : 1;
+          return ((a.group && a.group.order) || 0) - ((b.group && b.group.order) || 0);
+        });
       }
 
       function buildRevealBatches(items) {
@@ -3782,7 +3910,39 @@ function buildExportHtml(payload) {
         return buildTransform(stageWidth / 2 - zoneCenterX, stageHeight / 2 - zoneCenterY, scale, 0);
       }
 
-      function applyPlaybackAppearance(zoneEntry, mode, useRevealDelay, currentStep, currentRevealIndex) {
+      function getRecapEntries(group) {
+        const ids = new Set(group.zoneIds);
+        return zones.filter((zoneEntry) => ids.has(zoneEntry.data.id));
+      }
+
+      function getRecapTransform(zoneEntry, recapEntries) {
+        const stageWidth = stage.clientWidth;
+        const stageHeight = stage.clientHeight;
+        if (!stageWidth || !stageHeight || !recapEntries.length) {
+          return buildTransform(0, 0, 1, 0);
+        }
+        const bounds = recapEntries.reduce((acc, recapEntry) => {
+          const width = recapEntry.element.offsetWidth;
+          const height = recapEntry.element.offsetHeight;
+          const left = recapEntry.element.offsetLeft;
+          const top = recapEntry.element.offsetTop;
+          return {
+            left: Math.min(acc.left, left),
+            top: Math.min(acc.top, top),
+            right: Math.max(acc.right, left + width),
+            bottom: Math.max(acc.bottom, top + height),
+          };
+        }, { left: Infinity, top: Infinity, right: -Infinity, bottom: -Infinity });
+        const groupWidth = Math.max(1, bounds.right - bounds.left);
+        const groupHeight = Math.max(1, bounds.bottom - bounds.top);
+        const targetScale = Math.min((stageWidth * 0.76) / groupWidth, (stageHeight * 0.76) / groupHeight);
+        const scale = Math.max(0.62, Math.min(2.1, targetScale));
+        const groupCenterX = bounds.left + groupWidth / 2;
+        const groupCenterY = bounds.top + groupHeight / 2;
+        return buildTransform(stageWidth / 2 - groupCenterX, stageHeight / 2 - groupCenterY, scale, 0);
+      }
+
+      function applyPlaybackAppearance(zoneEntry, mode, useRevealDelay, currentStep, currentRevealIndex, recapEntries) {
         const animation = zoneEntry.data.animation;
         const focusPresentation = animation.focusPresentation || null;
         const hasFocus = Boolean(focusPresentation && focusPresentation.enabled);
@@ -3792,7 +3952,9 @@ function buildExportHtml(payload) {
         const focusDepth = hasFocus && mode === "settled" ? Math.max(1, revealIndex - entryRevealIndex) : 0;
         const focusAppearance = hasFocus ? getFocusAppearance(focusPresentation, focusDepth) : null;
         const transitionDelay = mode === "active" && useRevealDelay ? animation.delay + "ms" : "0ms";
-        const transitionDuration = focusAppearance
+        const transitionDuration = mode === "recap"
+          ? Math.max(900, Number(animation.duration) || 700)
+          : focusAppearance
           ? Math.max(1100, Math.round(animation.duration * 1.45))
           : animation.duration;
         let opacity = 1;
@@ -3822,6 +3984,12 @@ function buildExportHtml(payload) {
           transform = getFocusActiveTransform(zoneEntry, focusAppearance);
           filter = "blur(" + focusAppearance.blur + "px) brightness(1.03) contrast(1.04) saturate(1)";
           boxShadow = "0 20px 70px rgba(0, 0, 0, 0.28)";
+        } else if (mode === "recap") {
+          opacity = 1;
+          zIndex = "70";
+          transform = getRecapTransform(zoneEntry, recapEntries || []);
+          filter = "blur(0px) brightness(1.03) contrast(1.04) saturate(1)";
+          boxShadow = "0 18px 60px rgba(0, 0, 0, 0.2)";
         }
 
         zoneEntry.element.style.opacity = String(opacity);
@@ -3852,6 +4020,25 @@ function buildExportHtml(payload) {
           applyPlaybackAppearance(zoneEntry, "active", useRevealDelay, step, currentRevealIndex);
         });
         scheduleFocusSettlingForStep(step);
+      }
+
+      function applyRecapState(group) {
+        clearFocusTimers();
+        const recapEntries = getRecapEntries(group);
+        const recapIds = new Set(group.zoneIds);
+        const currentRevealIndex = getFirstRevealBatchIndexForStep(group.afterStep);
+        zones.forEach((zoneEntry) => {
+          const zoneStep = Math.max(1, Number(zoneEntry.data.animation.step) || 1);
+          if (recapIds.has(zoneEntry.data.id)) {
+            applyPlaybackAppearance(zoneEntry, "recap", false, group.afterStep, currentRevealIndex, recapEntries);
+            return;
+          }
+          if (zoneStep > group.afterStep) {
+            applyPlaybackAppearance(zoneEntry, "hidden", false, group.afterStep, currentRevealIndex);
+            return;
+          }
+          applyPlaybackAppearance(zoneEntry, "settled", false, group.afterStep, currentRevealIndex);
+        });
       }
 
       function revealAll() {
@@ -3914,7 +4101,11 @@ function buildExportHtml(payload) {
         }
 
         const currentStep = stepSchedule[currentStepIndex];
-        applyStepState(currentStep.step, true);
+        if (currentStep.type === "recap") {
+          applyRecapState(currentStep.group);
+        } else {
+          applyStepState(currentStep.step, true);
+        }
 
         if (payload.settings.stepMode === "auto") {
           currentStepIndex += 1;
@@ -4032,7 +4223,7 @@ function createRuntimeController(stageElement, payload, options = {}) {
 
   let active = true;
   let started = false;
-  const stepSchedule = buildStepSchedule(entries);
+  const stepSchedule = buildStepSchedule(entries, payload.recapGroups ?? []);
   const revealBatches = buildRevealBatches(entries);
   const revealBatchIndex = new Map(revealBatches.map((batch) => [batch.key, batch.index]));
   let currentStepIndex = 0;
@@ -4119,7 +4310,43 @@ function createRuntimeController(stageElement, payload, options = {}) {
     return buildTransform(stageWidth / 2 - zoneCenterX, stageHeight / 2 - zoneCenterY, scale, 0);
   }
 
-  function applyPlaybackAppearance(entry, mode, useRevealDelay = false, currentStep = 1, currentRevealIndex) {
+  function getRecapTransform(entry, recapEntries) {
+    const stageWidth = stageElement.clientWidth;
+    const stageHeight = stageElement.clientHeight;
+    if (!stageWidth || !stageHeight || !recapEntries.length) {
+      return buildTransform(0, 0, 1, 0);
+    }
+
+    const bounds = recapEntries.reduce(
+      (acc, recapEntry) => {
+        const width = recapEntry.element.offsetWidth;
+        const height = recapEntry.element.offsetHeight;
+        const left = recapEntry.element.offsetLeft;
+        const top = recapEntry.element.offsetTop;
+        return {
+          left: Math.min(acc.left, left),
+          top: Math.min(acc.top, top),
+          right: Math.max(acc.right, left + width),
+          bottom: Math.max(acc.bottom, top + height),
+        };
+      },
+      { left: Infinity, top: Infinity, right: -Infinity, bottom: -Infinity }
+    );
+    const groupWidth = Math.max(1, bounds.right - bounds.left);
+    const groupHeight = Math.max(1, bounds.bottom - bounds.top);
+    const targetScale = Math.min((stageWidth * 0.76) / groupWidth, (stageHeight * 0.76) / groupHeight);
+    const scale = clamp(targetScale, 0.62, 2.1);
+    const groupCenterX = bounds.left + groupWidth / 2;
+    const groupCenterY = bounds.top + groupHeight / 2;
+    return buildTransform(stageWidth / 2 - groupCenterX, stageHeight / 2 - groupCenterY, scale, 0);
+  }
+
+  function getRecapEntries(group) {
+    const wantedIds = new Set(group.zoneIds);
+    return entries.filter((entry) => wantedIds.has(entry.data.id));
+  }
+
+  function applyPlaybackAppearance(entry, mode, useRevealDelay = false, currentStep = 1, currentRevealIndex, recapEntries = []) {
     const animation = entry.data.animation;
     const focusPresentation = animation.focusPresentation || null;
     const hasFocus = Boolean(focusPresentation?.enabled);
@@ -4129,7 +4356,9 @@ function createRuntimeController(stageElement, payload, options = {}) {
     const focusDepth = hasFocus && mode === "settled" ? Math.max(1, revealIndex - entryRevealIndex) : 0;
     const focusAppearance = hasFocus ? getFocusAppearance(focusPresentation, focusDepth) : null;
     const transitionDelay = mode === "active" && useRevealDelay ? `${Math.max(0, animation.delay)}ms` : "0ms";
-    const transitionDuration = focusAppearance
+    const transitionDuration = mode === "recap"
+      ? Math.max(900, Number(animation.duration) || 700)
+      : focusAppearance
       ? Math.max(1100, Math.round(animation.duration * 1.45))
       : animation.duration;
     let opacity = 1;
@@ -4155,6 +4384,12 @@ function createRuntimeController(stageElement, payload, options = {}) {
       transform = getFocusActiveTransform(entry, focusAppearance);
       filter = `blur(${focusAppearance.blur}px) brightness(1.03) contrast(1.04) saturate(1)`;
       boxShadow = "0 20px 70px rgba(0, 0, 0, 0.28)";
+    } else if (mode === "recap") {
+      opacity = 1;
+      zIndex = "70";
+      transform = getRecapTransform(entry, recapEntries);
+      filter = "blur(0px) brightness(1.03) contrast(1.04) saturate(1)";
+      boxShadow = "0 18px 60px rgba(0, 0, 0, 0.2)";
     }
 
     entry.element.style.opacity = String(opacity);
@@ -4185,6 +4420,25 @@ function createRuntimeController(stageElement, payload, options = {}) {
       applyPlaybackAppearance(entry, "active", useRevealDelay, currentStep, currentRevealIndex);
     });
     scheduleFocusSettlingForStep(currentStep);
+  }
+
+  function applyRecapState(group) {
+    clearFocusTimers();
+    const recapEntries = getRecapEntries(group);
+    const recapIds = new Set(group.zoneIds);
+    const currentRevealIndex = getFirstRevealBatchIndexForStep(group.afterStep);
+    entries.forEach((entry) => {
+      const step = Math.max(1, Number(entry.data.animation.step) || 1);
+      if (recapIds.has(entry.data.id)) {
+        applyPlaybackAppearance(entry, "recap", false, group.afterStep, currentRevealIndex, recapEntries);
+        return;
+      }
+      if (step > group.afterStep) {
+        applyPlaybackAppearance(entry, "hidden", false, group.afterStep, currentRevealIndex);
+        return;
+      }
+      applyPlaybackAppearance(entry, "settled", false, group.afterStep, currentRevealIndex);
+    });
   }
 
   function revealAll() {
@@ -4251,7 +4505,11 @@ function createRuntimeController(stageElement, payload, options = {}) {
     }
 
     const currentStep = stepSchedule[currentStepIndex];
-    applyStepState(currentStep.step, true);
+    if (currentStep.type === "recap") {
+      applyRecapState(currentStep.group);
+    } else {
+      applyStepState(currentStep.step, true);
+    }
 
     if (payload.settings.stepMode === "auto") {
       currentStepIndex += 1;

@@ -53,6 +53,10 @@
   margin-top: 12px;
 }
 
+.group-controls-single {
+  grid-template-columns: minmax(0, 1fr);
+}
+
 .mini-field label {
   display: block;
   margin-bottom: 6px;

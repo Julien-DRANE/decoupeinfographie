@@ -531,7 +531,8 @@ input[type="range"] {
   box-shadow: inset 0 0 0 2px rgba(32, 100, 203, 0.18);
 }
 
-.zone-focus-state {
+.zone-focus-state,
+.zone-recap-state {
   display: inline-flex;
   width: fit-content;
   margin: 4px 0 0;
@@ -546,6 +547,11 @@ input[type="range"] {
 .zone-focus-state.active {
   color: #fff;
   background: #1f6f5f;
+}
+
+.zone-recap-state.active {
+  color: #fff;
+  background: #6b4fd8;
 }
 
 .effect-pill {

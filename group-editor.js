@@ -22,16 +22,27 @@ function getGroupsByKind(kind) {
 }
 
 function getGroupKindLabel(kind) {
-  return kind === "focus" ? "focus" : "apparition";
+  if (kind === "focus") {
+    return "focus";
+  }
+  if (kind === "recap") {
+    return "recap";
+  }
+  return "apparition";
 }
 
 function getGroupZoneCountText(group) {
   return `${group.zoneIds.length} zone(s)`;
 }
 
+function getZoneShortLabel(zone) {
+  return `Zone ${(zone.animation.order ?? state.zones.indexOf(zone)) + 1}`;
+}
+
 function renderGroupsPanel() {
   renderTimingGroupsPanel();
   renderFocusGroupsPanel();
+  renderRecapGroupsPanel();
 }
 
 function renderTimingGroupsPanel() {
@@ -218,7 +229,7 @@ function renderFocusGroupsPanel() {
   if (!focusGroups.length) {
     const emptyState = document.createElement("article");
     emptyState.className = "empty-state";
-    emptyState.textContent = "Selectionne des zones puis cree un groupe de focus.";
+    emptyState.textContent = "Selectionne une ou plusieurs zones.";
     focusGroupsList.append(emptyState);
     return;
   }
@@ -241,11 +252,7 @@ function renderFocusGroupsPanel() {
     title.textContent = group.name;
     const meta = document.createElement("p");
     meta.className = "group-meta";
-    const focusPresetLabel =
-      group.presentation.enabled && group.presentation.presetKey && group.presentation.presetKey !== "custom"
-        ? getGroupFocusPresetLabel(group.presentation.presetKey)
-        : "Personnalise";
-    meta.textContent = `${getGroupZoneCountText(group)} • ${group.presentation.enabled ? `focus ${focusPresetLabel}` : "sans focus"}`;
+    meta.textContent = getGroupZoneCountText(group);
     titleWrap.append(title, meta);
 
     const removeButton = document.createElement("button");
@@ -259,7 +266,7 @@ function renderFocusGroupsPanel() {
 
     const toggleDetailsButton = document.createElement("button");
     toggleDetailsButton.className = "mini-btn";
-    toggleDetailsButton.textContent = isExpanded ? "Masquer les reglages" : "Afficher les reglages";
+    toggleDetailsButton.textContent = isExpanded ? "Masquer" : "Reglages";
     toggleDetailsButton.setAttribute("aria-expanded", String(isExpanded));
     toggleDetailsButton.addEventListener("click", () => {
       if (state.expandedFocusGroupIds.includes(group.id)) {
@@ -430,7 +437,7 @@ function renderFocusGroupsPanel() {
 
     const addSelectedButton = document.createElement("button");
     addSelectedButton.className = "mini-btn";
-    addSelectedButton.textContent = "Ajouter la selection";
+    addSelectedButton.textContent = "Ajouter";
     addSelectedButton.disabled = state.selectedZoneIds.length === 0;
     addSelectedButton.addEventListener("click", () => {
       assignSelectionToFocusGroup(group.id);
@@ -446,7 +453,7 @@ function renderFocusGroupsPanel() {
 
     const removeSelectedFromGroupButton = document.createElement("button");
     removeSelectedFromGroupButton.className = "mini-btn";
-    removeSelectedFromGroupButton.textContent = "Retirer la selection";
+    removeSelectedFromGroupButton.textContent = "Retirer";
     removeSelectedFromGroupButton.disabled = state.selectedZoneIds.length === 0;
     removeSelectedFromGroupButton.addEventListener("click", () => {
       removeSelectedZoneFromFocusGroup();
@@ -474,7 +481,7 @@ function renderFocusGroupsPanel() {
 
       const label = document.createElement("button");
       label.className = "mini-btn member-label";
-      label.textContent = zone.fileName;
+      label.textContent = getZoneShortLabel(zone);
       label.addEventListener("click", () => selectZone(zone.id));
 
       left.append(handle, label);
@@ -495,6 +502,139 @@ function renderFocusGroupsPanel() {
   });
 
   focusGroupsList.append(fragment);
+}
+
+function renderRecapGroupsPanel() {
+  recapGroupsList.innerHTML = "";
+
+  const recapGroups = getGroupsByKind("recap");
+  if (!recapGroups.length) {
+    const emptyState = document.createElement("article");
+    emptyState.className = "empty-state";
+    emptyState.textContent = "Selectionne 2 zones ou plus.";
+    recapGroupsList.append(emptyState);
+    return;
+  }
+
+  const fragment = document.createDocumentFragment();
+  recapGroups.forEach((group) => {
+    const card = document.createElement("article");
+    card.className = "group-card";
+    if (state.selectedRecapGroupId === group.id) {
+      card.classList.add("selected");
+    }
+
+    const topline = document.createElement("div");
+    topline.className = "group-topline";
+
+    const titleWrap = document.createElement("div");
+    const title = document.createElement("h3");
+    title.className = "group-name";
+    title.textContent = group.name;
+    const meta = document.createElement("p");
+    meta.className = "group-meta";
+    meta.textContent = getGroupZoneCountText(group);
+    titleWrap.append(title, meta);
+
+    const removeButton = document.createElement("button");
+    removeButton.className = "mini-btn";
+    removeButton.textContent = "Supprimer";
+    removeButton.addEventListener("click", () => deleteGroup(group.id));
+
+    topline.append(titleWrap, removeButton);
+
+    const controls = document.createElement("div");
+    controls.className = "group-controls group-controls-single";
+    const nameField = createMiniField("Nom", group.name, (value) => {
+      group.name = value || group.name;
+      renderGroupsPanel();
+    });
+    controls.append(nameField);
+
+    const actions = document.createElement("div");
+    actions.className = "group-actions";
+
+    const addSelectedButton = document.createElement("button");
+    addSelectedButton.className = "mini-btn";
+    addSelectedButton.textContent = "Ajouter";
+    addSelectedButton.disabled = state.selectedZoneIds.length === 0;
+    addSelectedButton.addEventListener("click", () => {
+      assignSelectionToRecapGroup(group.id);
+    });
+
+    const removeSelectedFromGroupButton = document.createElement("button");
+    removeSelectedFromGroupButton.className = "mini-btn";
+    removeSelectedFromGroupButton.textContent = "Retirer";
+    removeSelectedFromGroupButton.disabled = state.selectedZoneIds.length === 0;
+    removeSelectedFromGroupButton.addEventListener("click", () => {
+      removeSelectedZoneFromRecapGroup();
+    });
+
+    const selectGroupButton = document.createElement("button");
+    selectGroupButton.className = "mini-btn";
+    selectGroupButton.textContent = state.selectedRecapGroupId === group.id ? "Recap actif" : "Activer";
+    selectGroupButton.addEventListener("click", () => {
+      state.selectedRecapGroupId = group.id;
+      renderGroupsPanel();
+    });
+
+    actions.append(addSelectedButton, removeSelectedFromGroupButton, selectGroupButton);
+
+    const members = document.createElement("div");
+    members.className = "group-members";
+
+    group.zoneIds.forEach((zoneId, memberIndex) => {
+      const zone = state.zones.find((item) => item.id === zoneId);
+      if (!zone) {
+        return;
+      }
+
+      const row = document.createElement("div");
+      row.className = "group-member";
+
+      const left = document.createElement("div");
+      left.className = "member-left";
+
+      const handle = document.createElement("span");
+      handle.className = "member-handle";
+      handle.textContent = ":::";
+
+      const label = document.createElement("button");
+      label.className = "mini-btn member-label";
+      label.textContent = `${memberIndex + 1}. ${getZoneShortLabel(zone)}`;
+      label.addEventListener("click", () => selectZone(zone.id));
+
+      left.append(handle, label);
+
+      const buttons = document.createElement("div");
+      buttons.className = "member-buttons";
+
+      const upButton = document.createElement("button");
+      upButton.className = "mini-btn";
+      upButton.textContent = "↑";
+      upButton.disabled = memberIndex === 0;
+      upButton.addEventListener("click", () => {
+        reorderRecapGroupMember(group.id, memberIndex, -1);
+      });
+
+      const downButton = document.createElement("button");
+      downButton.className = "mini-btn";
+      downButton.textContent = "↓";
+      downButton.disabled = memberIndex === group.zoneIds.length - 1;
+      downButton.addEventListener("click", () => {
+        reorderRecapGroupMember(group.id, memberIndex, 1);
+      });
+
+      buttons.append(upButton, downButton);
+      row.append(left, buttons);
+      members.append(row);
+    });
+
+    card.append(topline, controls, actions, members);
+    fragment.append(card);
+  });
+
+  recapGroupsList.append(fragment);
 }
 
 function createNewTimingGroup() {
@@ -540,6 +680,26 @@ function createNewFocusGroup() {
   updateAnimationControlsState();
 }
 
+function createNewRecapGroup() {
+  const selectedZones = getSelectedZones();
+  if (selectedZones.length < 2) {
+    setAnimationStatus("Selectionne au moins 2 zones avec Ctrl pour creer un recap.");
+    return;
+  }
+
+  const group = {
+    id: makeId(state.groups.length + 1),
+    kind: "recap",
+    name: `Recap ${getGroupsByKind("recap").length + 1}`,
+    zoneIds: [],
+  };
+  state.groups.push(group);
+  state.selectedRecapGroupId = group.id;
+  assignSelectionToRecapGroup(group.id);
+  renderGroupsPanel();
+  updateAnimationControlsState();
+}
+
 function assignSelectionToTimingGroup(groupId) {
   const zones = getSelectedZones();
   const group = state.groups.find((item) => item.id === groupId && item.kind === "timing");
@@ -548,11 +708,13 @@ function assignSelectionToTimingGroup(groupId) {
   }
 
   zones.forEach((zone) => {
-    removeZoneFromGroupsOfKind(zone.id, "timing", false);
+    removeZoneFromGroupsOfKind(zone.id, "timing", false, group.id);
     zone.animation.timingGroupId = group.id;
     zone.animation.groupId = group.id;
     zone.animation.step = group.step;
-    group.zoneIds.push(zone.id);
+    if (!group.zoneIds.includes(zone.id)) {
+      group.zoneIds.push(zone.id);
+    }
   });
 
   renderZones(state.zones);
@@ -570,9 +732,33 @@ function assignSelectionToFocusGroup(groupId) {
   }
 
   zones.forEach((zone) => {
-    removeZoneFromGroupsOfKind(zone.id, "focus", false);
+    removeZoneFromGroupsOfKind(zone.id, "focus", false, group.id);
     zone.animation.focusGroupId = group.id;
-    group.zoneIds.push(zone.id);
+    if (!group.zoneIds.includes(zone.id)) {
+      group.zoneIds.push(zone.id);
+    }
+  });
+
+  renderZones(state.zones);
+  renderAnimationStage();
+  updateInspector();
+  renderGroupsPanel();
+  updateAnimationControlsState();
+}
+
+function assignSelectionToRecapGroup(groupId) {
+  const zones = getSelectedZones();
+  const group = state.groups.find((item) => item.id === groupId && item.kind === "recap");
+  if (!zones.length || !group) {
+    return;
+  }
+
+  zones.forEach((zone) => {
+    removeZoneFromGroupsOfKind(zone.id, "recap", false, group.id);
+    zone.animation.recapGroupId = group.id;
+    if (!group.zoneIds.includes(zone.id)) {
+      group.zoneIds.push(zone.id);
+    }
   });
 
   renderZones(state.zones);
@@ -602,24 +788,37 @@ function removeSelectedZoneFromFocusGroup() {
   });
 }
 
+function removeSelectedZoneFromRecapGroup() {
+  const zones = getSelectedZones();
+  if (!zones.length) {
+    return;
+  }
+  zones.forEach((zone, index) => {
+    removeZoneFromGroupsOfKind(zone.id, "recap", index === zones.length - 1);
+  });
+}
+
 function removeZoneFromGroup(zoneId, kind) {
   removeZoneFromGroupsOfKind(zoneId, kind, true);
 }
 
-function removeZoneFromGroupsOfKind(zoneId, kind, rerender) {
+function removeZoneFromGroupsOfKind(zoneId, kind, rerender, preservedGroupId = null) {
   state.groups.forEach((group) => {
     if (group.kind !== kind) {
       return;
     }
     group.zoneIds = group.zoneIds.filter((id) => id !== zoneId);
   });
-  state.groups = state.groups.filter((group) => group.zoneIds.length > 0);
+  state.groups = state.groups.filter((group) => group.zoneIds.length > 0 || group.id === preservedGroupId);
 
   if (kind === "timing" && state.selectedGroupId && !state.groups.some((group) => group.id === state.selectedGroupId)) {
     state.selectedGroupId = getGroupsByKind("timing")[0]?.id ?? null;
   }
   if (kind === "focus" && state.selectedFocusGroupId && !state.groups.some((group) => group.id === state.selectedFocusGroupId)) {
     state.selectedFocusGroupId = getGroupsByKind("focus")[0]?.id ?? null;
+  }
+  if (kind === "recap" && state.selectedRecapGroupId && !state.groups.some((group) => group.id === state.selectedRecapGroupId)) {
+    state.selectedRecapGroupId = getGroupsByKind("recap")[0]?.id ?? null;
   }
 
   const zone = state.zones.find((item) => item.id === zoneId);
@@ -629,6 +828,8 @@ function removeZoneFromGroupsOfKind(zoneId, kind, rerender) {
       zone.animation.groupId = null;
     } else if (kind === "focus") {
       zone.animation.focusGroupId = null;
+    } else if (kind === "recap") {
+      zone.animation.recapGroupId = null;
     }
   }
 
@@ -657,6 +858,8 @@ function deleteGroup(groupId) {
       zone.animation.groupId = null;
     } else if (group.kind === "focus") {
       zone.animation.focusGroupId = null;
+    } else if (group.kind === "recap") {
+      zone.animation.recapGroupId = null;
     }
   });
 
@@ -666,6 +869,9 @@ function deleteGroup(groupId) {
   }
   if (state.selectedFocusGroupId === groupId) {
     state.selectedFocusGroupId = getGroupsByKind("focus")[0]?.id ?? null;
+  }
+  if (state.selectedRecapGroupId === groupId) {
+    state.selectedRecapGroupId = getGroupsByKind("recap")[0]?.id ?? null;
   }
   state.expandedFocusGroupIds = (state.expandedFocusGroupIds ?? []).filter((id) => id !== groupId);
 
@@ -678,6 +884,20 @@ function deleteGroup(groupId) {
 
 function reorderGroupMember(groupId, memberIndex, direction) {
   const group = state.groups.find((item) => item.id === groupId && item.kind === "timing");
+  if (!group) {
+    return;
+  }
+  const nextIndex = memberIndex + direction;
+  if (nextIndex < 0 || nextIndex >= group.zoneIds.length) {
+    return;
+  }
+  const [zoneId] = group.zoneIds.splice(memberIndex, 1);
+  group.zoneIds.splice(nextIndex, 0, zoneId);
+  renderGroupsPanel();
+}
+
+function reorderRecapGroupMember(groupId, memberIndex, direction) {
+  const group = state.groups.find((item) => item.id === groupId && item.kind === "recap");
   if (!group) {
     return;
   }
