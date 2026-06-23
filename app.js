@@ -1791,6 +1791,8 @@ function renderAnimationStage() {
 
   const format = FORMATS[state.animationSettings.format];
   animationStage.style.aspectRatio = `${format.width} / ${format.height}`;
+  animationStage.style.setProperty("--stage-width", String(format.width));
+  animationStage.style.setProperty("--stage-height", String(format.height));
 
   if (!state.sourceImage) {
     const placeholder = document.createElement("div");
@@ -1807,15 +1809,6 @@ function renderAnimationStage() {
     format.width,
     format.height
   );
-
-  if (state.animationSettings.showGuide) {
-    const guide = document.createElement("img");
-    guide.className = "animation-guide";
-    guide.src = state.sourceImage.src;
-    guide.alt = "";
-    applyRectStyles(guide, fit, format);
-    animationStage.append(guide);
-  }
 
   getEnabledZonesSorted().forEach((zone) => {
     const element = document.createElement("img");
@@ -3779,8 +3772,8 @@ function buildExportHtml(payload) {
         will-change: transform, opacity;
       }
       .anim-zone.focus-settled {
-        opacity: 0.48 !important;
-        filter: brightness(0.72) contrast(0.96) saturate(0.86) blur(1px) !important;
+        opacity: 0.42 !important;
+        filter: brightness(0.96) contrast(0.99) saturate(0.94) blur(1px) !important;
       }
     </style>
   </head>
@@ -3956,9 +3949,9 @@ function buildExportHtml(payload) {
           opacity: Math.max(0.02, Math.min(1, presentation.settledOpacity - extraDepth * presentation.settledOpacityStep)),
           scale: Math.max(0.55, Math.min(1, presentation.settledScale - extraDepth * presentation.settledScaleStep)),
           blur: Math.max(0, Math.min(12, presentation.settledBlur + extraDepth * presentation.settledBlurStep)),
-          brightness: Math.max(0.35, 0.72 - extraDepth * 0.08),
-          contrast: Math.max(0.85, 0.96 - extraDepth * 0.03),
-          veil: Math.min(0.4, 0.22 + extraDepth * 0.07),
+          brightness: Math.max(0.9, 0.96 - extraDepth * 0.02),
+          contrast: Math.max(0.96, 0.99 - extraDepth * 0.01),
+          veil: Math.min(0.08, 0.03 + extraDepth * 0.01),
         };
       }
 
@@ -4049,13 +4042,13 @@ function buildExportHtml(payload) {
         } else if (focusAppearance && mode === "settled") {
           opacity = focusAppearance.opacity;
           transform = buildTransform(0, 0, 1, 0);
-          filter = "blur(" + focusAppearance.blur + "px) brightness(" + focusAppearance.brightness + ") contrast(" + focusAppearance.contrast + ") saturate(0.78)";
+          filter = "blur(" + focusAppearance.blur + "px) brightness(" + focusAppearance.brightness + ") contrast(" + focusAppearance.contrast + ") saturate(0.94)";
           boxShadow = "inset 0 0 0 9999px rgba(0, 0, 0, " + focusAppearance.veil + ")";
         } else if (revealAtEnd && mode === "settled") {
-          opacity = 0.45;
+          opacity = 0.38;
           transform = buildTransform(0, 0, 1, 0);
-          filter = "blur(1.5px) brightness(0.84) contrast(0.94) saturate(0.82)";
-          boxShadow = "inset 0 0 0 9999px rgba(0, 0, 0, 0.12)";
+          filter = "blur(1.5px) brightness(0.97) contrast(0.99) saturate(0.94)";
+          boxShadow = "inset 0 0 0 9999px rgba(0, 0, 0, 0.02)";
         } else if (focusAppearance && mode === "active") {
           opacity = 1;
           zIndex = "50";
@@ -4370,9 +4363,9 @@ function createRuntimeController(stageElement, payload, options = {}) {
       opacity: clamp(sanitized.settledOpacity - extraDepth * sanitized.settledOpacityStep, 0.02, 1),
       scale: clamp(sanitized.settledScale - extraDepth * sanitized.settledScaleStep, 0.55, 1),
       blur: clamp(sanitized.settledBlur + extraDepth * sanitized.settledBlurStep, 0, 12),
-      brightness: Math.max(0.35, 0.72 - extraDepth * 0.08),
-      contrast: Math.max(0.85, 0.96 - extraDepth * 0.03),
-      veil: Math.min(0.4, 0.22 + extraDepth * 0.07),
+      brightness: Math.max(0.9, 0.96 - extraDepth * 0.02),
+      contrast: Math.max(0.96, 0.99 - extraDepth * 0.01),
+      veil: Math.min(0.08, 0.03 + extraDepth * 0.01),
     };
   }
 
@@ -4463,13 +4456,13 @@ function createRuntimeController(stageElement, payload, options = {}) {
     } else if (focusAppearance && mode === "settled") {
       opacity = focusAppearance.opacity;
       transform = buildTransform(0, 0, 1, 0);
-      filter = `blur(${focusAppearance.blur}px) brightness(${focusAppearance.brightness}) contrast(${focusAppearance.contrast}) saturate(0.78)`;
+      filter = `blur(${focusAppearance.blur}px) brightness(${focusAppearance.brightness}) contrast(${focusAppearance.contrast}) saturate(0.94)`;
       boxShadow = `inset 0 0 0 9999px rgba(0, 0, 0, ${focusAppearance.veil})`;
     } else if (revealAtEnd && mode === "settled") {
-      opacity = 0.45;
+      opacity = 0.38;
       transform = buildTransform(0, 0, 1, 0);
-      filter = "blur(1.5px) brightness(0.84) contrast(0.94) saturate(0.82)";
-      boxShadow = "inset 0 0 0 9999px rgba(0, 0, 0, 0.12)";
+      filter = "blur(1.5px) brightness(0.97) contrast(0.99) saturate(0.94)";
+      boxShadow = "inset 0 0 0 9999px rgba(0, 0, 0, 0.02)";
     } else if (focusAppearance && mode === "active") {
       opacity = 1;
       zIndex = "50";
