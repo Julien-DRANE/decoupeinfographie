@@ -2,7 +2,7 @@
   margin-top: 12px;
   padding: 12px;
   border-radius: 14px;
-  background: rgba(31, 27, 22, 0.035);
+  background: rgba(29, 78, 216, 0.045);
 }
 
 .group-focus-card.collapsed {
@@ -32,11 +32,11 @@
   padding: 8px 10px;
   font: inherit;
   cursor: pointer;
-  background: rgba(31, 27, 22, 0.08);
+  background: rgba(29, 78, 216, 0.08);
 }
 
 .group-focus-preset.active {
-  background: rgba(217, 93, 57, 0.16);
+  background: rgba(37, 99, 235, 0.14);
   color: var(--accent-dark);
 }
 

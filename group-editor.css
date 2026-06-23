@@ -7,8 +7,8 @@
 .group-card {
   padding: 14px;
   border-radius: 18px;
-  border: 1px solid rgba(31, 27, 22, 0.08);
-  background: rgba(255, 255, 255, 0.7);
+  border: 1px solid rgba(27, 70, 120, 0.1);
+  background: rgba(248, 251, 255, 0.72);
 }
 
 .group-card.selected {
@@ -66,11 +66,11 @@
 
 .mini-field input {
   width: 100%;
-  border: 1px solid rgba(31, 27, 22, 0.14);
+  border: 1px solid rgba(27, 70, 120, 0.16);
   border-radius: 12px;
   padding: 10px 12px;
   font: inherit;
-  background: #fff;
+  background: #f8fbff;
 }
 
 .group-focus-card {
@@ -104,10 +104,10 @@
 }
 
 .group-focus-preset {
-  border: 1px solid rgba(31, 27, 22, 0.12);
+  border: 1px solid rgba(27, 70, 120, 0.14);
   border-radius: 999px;
   padding: 8px 10px;
-  background: rgba(255, 255, 255, 0.9);
+  background: rgba(248, 251, 255, 0.92);
   font: inherit;
   cursor: pointer;
 }
@@ -134,7 +134,7 @@
 .group-member {
   padding: 10px 12px;
   border-radius: 14px;
-  background: rgba(31, 27, 22, 0.04);
+  background: rgba(29, 78, 216, 0.05);
 }
 
 .member-effect-select {
@@ -172,7 +172,7 @@
   padding: 8px 10px;
   font: inherit;
   cursor: pointer;
-  background: rgba(31, 27, 22, 0.08);
+  background: rgba(29, 78, 216, 0.08);
 }
 
 .effects-catalog {
@@ -196,9 +196,9 @@
   gap: 14px;
   padding: 12px 14px;
   border-radius: 18px;
-  border: 1px solid rgba(31, 27, 22, 0.08);
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.84) 0%, rgba(250, 243, 233, 0.94) 100%);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.7);
+  border: 1px solid rgba(27, 70, 120, 0.1);
+  background: linear-gradient(180deg, rgba(248, 251, 255, 0.88) 0%, rgba(226, 240, 255, 0.94) 100%);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.76);
   transition:
     transform 140ms ease,
     border-color 140ms ease,
@@ -208,10 +208,10 @@
 
 .zone-order-row:hover {
   transform: translateY(-1px);
-  border-color: rgba(217, 93, 57, 0.22);
+  border-color: rgba(37, 99, 235, 0.24);
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.78),
-    0 12px 28px rgba(73, 42, 11, 0.08);
+    0 12px 28px rgba(15, 54, 101, 0.08);
 }
 
 .zone-order-row.selected {
@@ -231,14 +231,14 @@
 
 .zone-order-row.drop-before {
   box-shadow:
-    inset 0 4px 0 rgba(217, 93, 57, 0.9),
-    0 12px 28px rgba(73, 42, 11, 0.08);
+    inset 0 4px 0 rgba(37, 99, 235, 0.9),
+    0 12px 28px rgba(15, 54, 101, 0.08);
 }
 
 .zone-order-row.drop-after {
   box-shadow:
-    inset 0 -4px 0 rgba(217, 93, 57, 0.9),
-    0 12px 28px rgba(73, 42, 11, 0.08);
+    inset 0 -4px 0 rgba(37, 99, 235, 0.9),
+    0 12px 28px rgba(15, 54, 101, 0.08);
 }
 
 .zones-order-list.drag-active .zone-order-row {
@@ -261,7 +261,7 @@
   padding: 8px 7px;
   border: 0;
   border-radius: 12px;
-  background: rgba(31, 27, 22, 0.06);
+  background: rgba(29, 78, 216, 0.08);
   cursor: grab;
 }
 
@@ -274,7 +274,7 @@
   width: 100%;
   height: 2px;
   border-radius: 999px;
-  background: rgba(31, 27, 22, 0.5);
+  background: rgba(30, 64, 175, 0.5);
 }
 
 .zone-order-thumb {
@@ -283,7 +283,7 @@
   object-fit: cover;
   border-radius: 12px;
   flex: 0 0 auto;
-  border: 1px solid rgba(31, 27, 22, 0.08);
+  border: 1px solid rgba(27, 70, 120, 0.1);
 }
 
 .zone-order-copy {
@@ -316,7 +316,7 @@
   border-radius: 999px;
   display: grid;
   place-items: center;
-  background: rgba(217, 93, 57, 0.14);
+  background: rgba(37, 99, 235, 0.14);
   color: var(--accent-dark);
   font-weight: 700;
   cursor: pointer;

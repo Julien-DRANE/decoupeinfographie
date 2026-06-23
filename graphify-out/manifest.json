@@ -5,8 +5,8 @@
     "semantic_hash": ""
   },
   "app.js": {
-    "mtime": 1782142106.0079877,
-    "ast_hash": "0b1c3079fae3da5c794c4fded7577e9e",
+    "mtime": 1782207558.238783,
+    "ast_hash": "1d768e1a49e9c100f7286fd584d9a6ad",
     "semantic_hash": ""
   },
   "group-editor.js": {
@@ -75,8 +75,33 @@
     "semantic_hash": ""
   },
   "index.html": {
-    "mtime": 1782129052.2349873,
-    "ast_hash": "534078475c6a886d493e5f3b0b4c0927",
+    "mtime": 1782207410.005249,
+    "ast_hash": "ed11b352f9fba281829e54d7010f3e13",
+    "semantic_hash": ""
+  },
+  "animation-core.js": {
+    "mtime": 1782198451.862975,
+    "ast_hash": "c6aacf984c0785b588e5fa89437b2958",
+    "semantic_hash": ""
+  },
+  "detection-core.js": {
+    "mtime": 1782198291.3636444,
+    "ast_hash": "88cb4ee175da56001a072bd9590a1fd1",
+    "semantic_hash": ""
+  },
+  "package.json": {
+    "mtime": 1782198452.0469744,
+    "ast_hash": "387557613b934becf2c31466044a6d8e",
+    "semantic_hash": ""
+  },
+  "test/animation-core.test.js": {
+    "mtime": 1782198451.9549747,
+    "ast_hash": "3f9494431ede41e7b419d13f79fbf656",
+    "semantic_hash": ""
+  },
+  "test/detection-core.test.js": {
+    "mtime": 1782198291.5216436,
+    "ast_hash": "7378c959b82db36d17d158ce5da6de5a",
     "semantic_hash": ""
   }
 }

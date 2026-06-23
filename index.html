@@ -104,6 +104,9 @@
             <button id="downloadAllButton" class="btn btn-secondary" disabled>
               Telecharger toutes les zones
             </button>
+            <button id="exportZipButton" class="btn btn-secondary" disabled>
+              Exporter ZIP
+            </button>
           </div>
 
           <div class="actions">
@@ -120,6 +123,11 @@
             <p id="statusText">Charge une image pour commencer.</p>
             <p id="summaryText" class="summary"></p>
           </div>
+
+          <div class="status-card diagnostics-card">
+            <h3>Diagnostic detection</h3>
+            <p id="diagnosticsText" class="summary">Aucune analyse lancee.</p>
+          </div>
         </aside>
 
         <section class="panel stage-panel">
@@ -135,6 +143,9 @@
               </button>
               <button id="duplicateZoneButton" class="btn btn-secondary" disabled>
                 Dupliquer la zone
+              </button>
+              <button id="deleteZoneButton" class="btn btn-secondary" disabled>
+                Supprimer
               </button>
             </div>
           </div>
@@ -579,6 +590,7 @@
           <p class="zone-dimensions"></p>
           <p class="zone-position"></p>
           <p class="zone-step"></p>
+          <p class="zone-deferred-state"></p>
           <p class="zone-focus-state"></p>
           <p class="zone-recap-state"></p>
         </div>
@@ -587,12 +599,15 @@
           <button class="btn btn-secondary zone-download">PNG</button>
         </div>
         <div class="zone-card-actions compact-actions zone-group-actions">
+          <button class="btn btn-secondary zone-group-deferred">Attenuer</button>
           <button class="btn btn-secondary zone-group-timing">Groupe apparition</button>
           <button class="btn btn-secondary zone-group-focus">Mode focus</button>
         </div>
       </article>
     </template>
 
+    <script src="./detection-core.js"></script>
+    <script src="./animation-core.js"></script>
     <script src="./group-editor.js"></script>
     <script src="./group-focus.js"></script>
     <script src="./app.js"></script>

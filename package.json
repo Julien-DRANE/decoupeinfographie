@@ -1,0 +1,11 @@
+{
+  "name": "decoupezoneimage",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Studio statique de decoupe d'infographies et d'export de slides HTML animees.",
+  "scripts": {
+    "test": "node --test",
+    "check": "node -c app.js && node -c group-editor.js && node -c group-focus.js && node -c detection-core.js && node -c animation-core.js && npm test"
+  },
+  "devDependencies": {}
+}

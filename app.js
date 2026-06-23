@@ -113,12 +113,14 @@ const state = {
     placement: "before",
   },
   previewOrderLabels: [],
+  detectionDiagnostics: null,
 };
 
 const imageInput = document.querySelector("#imageInput");
 const projectInput = document.querySelector("#projectInput");
 const detectButton = document.querySelector("#detectButton");
 const downloadAllButton = document.querySelector("#downloadAllButton");
+const exportZipButton = document.querySelector("#exportZipButton");
 const openProjectButton = document.querySelector("#openProjectButton");
 const saveProjectButton = document.querySelector("#saveProjectButton");
 const addZoneModeButton = document.querySelector("#addZoneModeButton");
@@ -153,6 +155,7 @@ const animationStageViewport = document.querySelector("#animationStageViewport")
 
 const statusText = document.querySelector("#statusText");
 const summaryText = document.querySelector("#summaryText");
+const diagnosticsText = document.querySelector("#diagnosticsText");
 const animationStatusText = document.querySelector("#animationStatusText");
 
 const presetSelect = document.querySelector("#presetSelect");
@@ -194,6 +197,7 @@ const splitZone2ColsButton = document.querySelector("#splitZone2ColsButton");
 const splitZone3ColsButton = document.querySelector("#splitZone3ColsButton");
 const splitZone4ColsButton = document.querySelector("#splitZone4ColsButton");
 const duplicateZoneButton = document.querySelector("#duplicateZoneButton");
+const deleteZoneButton = document.querySelector("#deleteZoneButton");
 const resetSubdivideButton = document.querySelector("#resetSubdivideButton");
 const splitZoneSummary = document.querySelector("#splitZoneSummary");
 const zoneEnabledCheckbox = document.querySelector("#zoneEnabledCheckbox");
@@ -231,6 +235,10 @@ function getZoneFocusGroupId(animation = {}) {
 
 function getZoneRecapGroupId(animation = {}) {
   return typeof animation.recapGroupId === "string" && animation.recapGroupId ? animation.recapGroupId : null;
+}
+
+function getZoneRevealAtEnd(animation = {}) {
+  return Boolean(animation.revealAtEnd);
 }
 
 function getGroupById(groupId) {
@@ -432,6 +440,7 @@ imageInput.addEventListener("change", async (event) => {
     state.selectedRecapGroupId = null;
     state.selectedZoneId = null;
     state.selectedZoneIds = [];
+    state.detectionDiagnostics = null;
 
     drawSourceImage();
     renderZones([]);
@@ -443,6 +452,8 @@ imageInput.addEventListener("change", async (event) => {
 
     detectButton.disabled = false;
     downloadAllButton.disabled = true;
+    exportZipButton.disabled = true;
+    updateDetectionDiagnostics();
     updateAnimationControlsState();
 
     setStatus(
@@ -496,6 +507,10 @@ downloadAllButton.addEventListener("click", async () => {
   }
 });
 
+exportZipButton.addEventListener("click", async () => {
+  await exportProjectZip();
+});
+
 selectAllZonesButton.addEventListener("click", () => {
   updateAllZonesEnabled(true);
 });
@@ -540,6 +555,10 @@ toggleZoneLockButton.addEventListener("click", () => {
 
 duplicateZoneButton.addEventListener("click", () => {
   duplicateSelectedZone();
+});
+
+deleteZoneButton.addEventListener("click", () => {
+  deleteSelectedZones();
 });
 
 addZoneModeButton.addEventListener("click", () => {
@@ -607,6 +626,12 @@ window.addEventListener("keydown", (event) => {
   if ((event.key === "Delete" || event.key === "Backspace") && state.selectedZoneIds.length) {
     event.preventDefault();
     deleteSelectedZones();
+    return;
+  }
+
+  if (["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"].includes(event.key) && state.selectedZoneIds.length) {
+    event.preventDefault();
+    nudgeSelectedZones(event.key, event.shiftKey ? 10 : 1);
   }
 });
 
@@ -700,6 +725,22 @@ function markPresetAsCustom() {
 function setStatus(message, summary) {
   statusText.textContent = message;
   summaryText.textContent = summary;
+}
+
+function updateDetectionDiagnostics() {
+  if (!state.detectionDiagnostics) {
+    diagnosticsText.textContent = "Aucune analyse lancee.";
+    return;
+  }
+
+  const diagnostics = state.detectionDiagnostics;
+  diagnosticsText.textContent = [
+    `Mode ${diagnostics.mode}`,
+    `seuil ${diagnostics.threshold}`,
+    `${formatNumber(diagnostics.foregroundPixels)} px avant-plan (${Math.round(diagnostics.foregroundRatio * 1000) / 10} %)`,
+    `${diagnostics.candidateCount} candidat(s)`,
+    `${diagnostics.keptCount} conserve(s)`,
+  ].join(" • ");
 }
 
 function setAnimationStatus(message) {
@@ -1404,6 +1445,7 @@ function deleteSelectedZones() {
   state.selectedZoneIds = nextZone ? [nextZone.id] : [];
   state.stepEditor.step = nextZone?.animation.step ?? 1;
   downloadAllButton.disabled = state.zones.length === 0;
+  exportZipButton.disabled = countEnabledZones() === 0;
 
   drawAnnotatedPreview();
   renderZones(state.zones);
@@ -1417,6 +1459,38 @@ function deleteSelectedZones() {
   setStatus(
     zoneIds.length > 1 ? "Selection supprimee." : "Zone supprimee.",
     `${state.zones.length} zone(s) restante(s) dans le projet.`
+  );
+}
+
+function nudgeSelectedZones(key, distance) {
+  const selectedZones = getSelectedZones().filter((zone) => !zone.locked);
+  if (!selectedZones.length) {
+    setStatus("Aucune zone deplacable.", "Deverrouille la zone selectionnee pour la deplacer au clavier.");
+    return;
+  }
+
+  const delta = {
+    ArrowLeft: { x: -distance, y: 0 },
+    ArrowRight: { x: distance, y: 0 },
+    ArrowUp: { x: 0, y: -distance },
+    ArrowDown: { x: 0, y: distance },
+  }[key];
+
+  selectedZones.forEach((zone) => {
+    zone.x = clamp(zone.x + delta.x, 0, Math.max(0, state.sourceImage.width - zone.width));
+    zone.y = clamp(zone.y + delta.y, 0, Math.max(0, state.sourceImage.height - zone.height));
+    refreshZoneAsset(zone);
+  });
+
+  drawAnnotatedPreview();
+  renderZones(state.zones);
+  renderAnimationStage();
+  updateInspector();
+  renderZonesOrderPanel();
+  updateAnimationControlsState();
+  setStatus(
+    `${selectedZones.length} zone(s) deplacee(s).`,
+    "Fleches: 1 px • Maj + fleche: 10 px."
   );
 }
 
@@ -1447,22 +1521,15 @@ function runDetection() {
   workingContext.drawImage(state.sourceImage, 0, 0);
 
   const { data, width, height } = workingContext.getImageData(0, 0, workingCanvas.width, workingCanvas.height);
-  const background = estimateBackgroundColor(data, width, height);
-  const mask = buildForegroundMask(data, width, height, background, threshold);
-  const boxes =
-    profile.mode === "layout"
-      ? detectLayoutZones(mask, width, height, {
-          minArea,
-          padding,
-          mergeDistance,
-          bridgeX: profile.bridgeX ?? 10,
-          bridgeY: profile.bridgeY ?? 8,
-          rowFillGap: profile.rowFillGap ?? 10,
-          columnFillGap: profile.columnFillGap ?? 16,
-        })
-      : detectComponentZones(mask, width, height, { minArea, padding, mergeDistance });
-
-  const filtered = suppressContainedBoxes(boxes).map((box) => enrichZoneGeometry(box, mask, width));
+  const detection = DetectionCore.detectZonesFromImageData(data, width, height, profile, {
+    threshold,
+    minArea,
+    padding,
+    mergeDistance,
+  });
+  const { background, mask } = detection;
+  const filtered = detection.filteredBoxes;
+  state.detectionDiagnostics = detection.diagnostics;
   state.zones = filtered
     .sort((a, b) => {
       if (Math.abs(a.y - b.y) > 20) {
@@ -1485,6 +1552,7 @@ function runDetection() {
   normalizeZoneOrder();
   renderZonesOrderPanel();
   updateAnimationControlsState();
+  updateDetectionDiagnostics();
 
   downloadAllButton.disabled = state.zones.length === 0;
 
@@ -1552,6 +1620,7 @@ function createZoneAsset(box, index, animationOverride = null, sourceContext = n
         focusGroupId: null,
         recapGroupId: null,
         groupId: null,
+        revealAtEnd: false,
         offsetX: 0,
         offsetY: 24,
         scaleFrom: 0.96,
@@ -1580,10 +1649,12 @@ function renderZones(zones) {
     const dimensions = card.querySelector(".zone-dimensions");
     const position = card.querySelector(".zone-position");
     const step = card.querySelector(".zone-step");
+    const deferredState = card.querySelector(".zone-deferred-state");
     const focusState = card.querySelector(".zone-focus-state");
     const recapState = card.querySelector(".zone-recap-state");
     const editButton = card.querySelector(".zone-edit");
     const downloadButton = card.querySelector(".zone-download");
+    const deferredButton = card.querySelector(".zone-group-deferred");
     const timingGroupButton = card.querySelector(".zone-group-timing");
     const focusGroupButton = card.querySelector(".zone-group-focus");
 
@@ -1598,7 +1669,9 @@ function renderZones(zones) {
     dimensions.textContent = `${zone.width} x ${zone.height} px`;
     position.textContent = `Origine: (${zone.x}, ${zone.y})`;
     step.textContent = zone.animation.enabled
-      ? `${zone.locked ? "Verrouillee • " : ""}Etape ${zone.animation.step} • ${labelForEffect(zone.animation.effect)}`
+      ? `${zone.locked ? "Verrouillee • " : ""}Etape ${zone.animation.step} • ${labelForEffect(zone.animation.effect)}${
+          getZoneRevealAtEnd(zone.animation) ? " • Attenuee jusqu'a la fin" : ""
+        }`
       : "Retiree de la slide";
 
     toggle.addEventListener("change", (event) => {
@@ -1623,17 +1696,28 @@ function renderZones(zones) {
     });
 
     const hasMultiSelection = state.selectedZoneIds.length >= 2;
+    const isDeferredReveal = getZoneRevealAtEnd(zone.animation);
     const isFocusZone = Boolean(getZoneFocusGroupId(zone.animation));
     const isRecapZone = Boolean(getZoneRecapGroupId(zone.animation));
+    deferredState.textContent = isDeferredReveal ? "Attenuee jusqu'a la fin" : "Reveal normal";
+    deferredState.classList.toggle("active", isDeferredReveal);
     focusState.textContent = isFocusZone ? "Mode focus actif" : "Mode focus inactif";
     focusState.classList.toggle("active", isFocusZone);
     recapState.textContent = isRecapZone ? "Recap actif" : "Aucun recap";
     recapState.classList.toggle("active", isRecapZone);
     timingGroupButton.disabled = !hasMultiSelection;
+    deferredButton.textContent = isDeferredReveal ? "Attenuation active" : "Attenuer";
+    deferredButton.classList.toggle("active", isDeferredReveal);
+    deferredButton.disabled = !zone.animation.enabled || isFocusZone;
+    deferredButton.setAttribute("aria-pressed", String(isDeferredReveal));
     focusGroupButton.disabled = !zone.animation.enabled;
     focusGroupButton.textContent = isFocusZone ? "Focus actif" : "Mode focus";
     focusGroupButton.classList.toggle("active", isFocusZone);
     focusGroupButton.setAttribute("aria-pressed", String(isFocusZone));
+    deferredButton.addEventListener("click", (event) => {
+      event.stopPropagation();
+      toggleZoneDeferredReveal(zone.id);
+    });
     timingGroupButton.addEventListener("click", (event) => {
       event.stopPropagation();
       createNewTimingGroup();
@@ -1671,6 +1755,7 @@ function toggleZoneFocusMode(zoneId) {
     zoneIds: [],
   };
   removeZoneFromGroupsOfKind(zone.id, "focus", false);
+  zone.animation.revealAtEnd = false;
   zone.animation.focusGroupId = group.id;
   group.zoneIds.push(zone.id);
   state.groups.push(group);
@@ -1681,6 +1766,23 @@ function toggleZoneFocusMode(zoneId) {
   renderGroupsPanel();
   updateAnimationControlsState();
   setAnimationStatus("Zone placee en mode focus.");
+}
+
+function toggleZoneDeferredReveal(zoneId) {
+  const zone = state.zones.find((item) => item.id === zoneId);
+  if (!zone || !zone.animation.enabled || getZoneFocusGroupId(zone.animation)) {
+    if (zone && getZoneFocusGroupId(zone.animation)) {
+      setAnimationStatus("Retire le mode focus avant d'atténuer la zone.");
+    }
+    return;
+  }
+
+  zone.animation.revealAtEnd = !getZoneRevealAtEnd(zone.animation);
+  renderZones(state.zones);
+  renderAnimationStage();
+  updateInspector();
+  updateAnimationControlsState();
+  setAnimationStatus(zone.animation.revealAtEnd ? "Zone attenuee jusqu'a la fin." : "Attenuation retiree.");
 }
 
 function renderAnimationStage() {
@@ -1862,7 +1964,9 @@ function updateAnimationControlsState() {
   splitZone3ColsButton.disabled = !hasSelectedZone;
   splitZone4ColsButton.disabled = !hasSelectedZone;
   duplicateZoneButton.disabled = !hasSelectedZone;
+  deleteZoneButton.disabled = !hasSelectedZone;
   resetSubdivideButton.disabled = !selectedZone?.subdivisionParent;
+  exportZipButton.disabled = !hasEnabledZones;
 
   if (hasEnabledZones) {
     let message = `${enabledCount} zone(s) dans la slide • ${enabledStepCount} etape(s) • demarrage ${labelForStartTrigger(
@@ -3102,90 +3206,31 @@ function applyZonePreviewAppearance(element, zone, revealed) {
 }
 
 function getZoneVisualState(animation, revealed) {
-  if (revealed) {
-    return {
-      opacity: 1,
-      transform: "translate(0px, 0px) scale(1) rotate(0deg)",
-      filter: "blur(0px)",
-    };
-  }
-
-  const hiddenOpacity = 0;
-  const hiddenTransform = buildTransform(
-    hiddenOffsetX(animation.effect, animation.offsetX),
-    hiddenOffsetY(animation.effect, animation.offsetY),
-    hiddenScale(animation.effect, animation.scaleFrom),
-    hiddenRotation(animation.effect, animation.rotateFrom)
-  );
-  const hiddenFilter = hiddenBlur(animation.effect);
-
-  return {
-    opacity: hiddenOpacity,
-    transform: hiddenTransform,
-    filter: `blur(${hiddenFilter}px)`,
-  };
+  return AnimationCore.getZoneVisualState(animation, revealed);
 }
 
 function hiddenOffsetX(effect, offsetX) {
-  if (effect === "fade-left") return -Math.abs(offsetX || 48);
-  if (effect === "fade-right") return Math.abs(offsetX || 48);
-  if (effect === "mist-left") return -Math.abs(offsetX || 80);
-  if (effect === "mist-right") return Math.abs(offsetX || 80);
-  if (effect === "drift-left") return -Math.abs(offsetX || 56);
-  if (effect === "drift-right") return Math.abs(offsetX || 56);
-  return offsetX;
+  return AnimationCore.hiddenOffsetX(effect, offsetX);
 }
 
 function hiddenOffsetY(effect, offsetY) {
-  if (effect === "fade-up") return Math.abs(offsetY || 24);
-  if (effect === "fade-down") return -Math.abs(offsetY || 24);
-  if (effect === "mist-up") return Math.abs(offsetY || 54);
-  if (effect === "mist-left" || effect === "mist-right") return offsetY || 10;
-  if (effect === "drift-left" || effect === "drift-right") return offsetY || 8;
-  return offsetY;
+  return AnimationCore.hiddenOffsetY(effect, offsetY);
 }
 
 function hiddenScale(effect, scaleFrom) {
-  if (effect === "fade") return 1;
-  if (effect === "pop") return Math.min(scaleFrom || 0.84, 0.9);
-  if (effect === "zoom") return Math.min(scaleFrom || 0.82, 0.92);
-  if (effect === "mist-left" || effect === "mist-right" || effect === "mist-up") {
-    return Math.min(scaleFrom || 1.03, 1.05);
-  }
-  if (effect === "drift-left" || effect === "drift-right") {
-    return Math.min(scaleFrom || 1, 1);
-  }
-  return scaleFrom;
+  return AnimationCore.hiddenScale(effect, scaleFrom);
 }
 
 function hiddenRotation(effect, rotateFrom) {
-  if (effect === "pop") {
-    return rotateFrom || -6;
-  }
-  if (effect === "drift-left") {
-    return rotateFrom || -2;
-  }
-  if (effect === "drift-right") {
-    return rotateFrom || 2;
-  }
-  return rotateFrom;
+  return AnimationCore.hiddenRotation(effect, rotateFrom);
 }
 
 function hiddenBlur(effect) {
-  if (effect === "mist-left" || effect === "mist-right" || effect === "mist-up") {
-    return 14;
-  }
-  if (effect === "zoom") {
-    return 4;
-  }
-  if (effect === "drift-left" || effect === "drift-right") {
-    return 2;
-  }
-  return 0;
+  return AnimationCore.hiddenBlur(effect);
 }
 
 function buildTransform(x, y, scale, rotate) {
-  return `translate(${x}px, ${y}px) scale(${scale}) rotate(${rotate}deg)`;
+  return AnimationCore.buildTransform(x, y, scale, rotate);
 }
 
 function getExportPayload() {
@@ -3509,6 +3554,7 @@ function normalizeProjectZone(zone, index) {
       focusGroupId: getZoneFocusGroupId(animation),
       recapGroupId: getZoneRecapGroupId(animation),
       groupId: getZoneTimingGroupId(animation),
+      revealAtEnd: Boolean(animation.revealAtEnd),
       offsetX: Number(animation.offsetX) || 0,
       offsetY: Number.isFinite(Number(animation.offsetY)) ? Number(animation.offsetY) : defaults.offsetY ?? 0,
       scaleFrom: clamp(Number(animation.scaleFrom) || 0.96, 0.2, 2),
@@ -3567,40 +3613,7 @@ function structuredCloneProjectData(value) {
 }
 
 function buildStepSchedule(items, recapGroups = []) {
-  const steps = new Map();
-
-  items.forEach((item) => {
-    const animation = item.animation ?? item.data?.animation;
-    if (!animation) {
-      return;
-    }
-
-    const step = Math.max(1, Number(animation.step) || 1);
-    const duration = Math.max(0, Number(animation.duration) || 0);
-    const delay = Math.max(0, Number(animation.delay) || 0);
-    const endTime = duration + delay;
-    steps.set(step, Math.max(steps.get(step) ?? 0, endTime));
-  });
-
-  const stepEvents = [...steps.entries()]
-    .sort((a, b) => a[0] - b[0])
-    .map(([step, duration]) => ({ type: "step", step, duration }));
-  const recapEvents = recapGroups.map((group) => ({
-    type: "recap",
-    step: group.afterStep,
-    duration: group.duration,
-    group,
-  }));
-
-  return [...stepEvents, ...recapEvents].sort((a, b) => {
-    if (a.step !== b.step) {
-      return a.step - b.step;
-    }
-    if (a.type !== b.type) {
-      return a.type === "step" ? -1 : 1;
-    }
-    return (a.group?.order ?? 0) - (b.group?.order ?? 0);
-  });
+  return AnimationCore.buildStepSchedule(items, recapGroups);
 }
 
 function getResolvedEnabledStepCount() {
@@ -3664,6 +3677,61 @@ function exportOverlayHtml() {
       payload.settings.startTrigger
     )}.`
   );
+}
+
+async function exportProjectZip() {
+  const payload = getExportPayload();
+  if (!payload.zones.length) {
+    setAnimationStatus("Aucune zone active a exporter.");
+    return;
+  }
+
+  const projectPayload = await buildProjectPayload();
+  const html = buildExportHtml(payload);
+  const animationManifest = {
+    version: 1,
+    kind: "decoupezoneimage-animation-manifest",
+    exportedAt: new Date().toISOString(),
+    name: payload.name,
+    format: payload.format,
+    settings: payload.settings,
+    source: payload.source,
+    zones: payload.zones.map((zone) => ({
+      id: zone.id,
+      fileName: zone.fileName,
+      box: zone.box,
+      placement: zone.placement,
+      animation: zone.animation,
+    })),
+    groups: payload.groups,
+    recapGroups: payload.recapGroups,
+  };
+  const files = [
+    {
+      name: `${state.imageName}-overlay-${payload.format.label.replace(":", "x")}.html`,
+      bytes: encodeText(html),
+    },
+    {
+      name: `${state.imageName}-projet-animation.json`,
+      bytes: encodeText(JSON.stringify(projectPayload, null, 2)),
+    },
+    {
+      name: `${state.imageName}-animation-manifest.json`,
+      bytes: encodeText(JSON.stringify(animationManifest, null, 2)),
+    },
+  ];
+
+  payload.zones.forEach((zone) => {
+    files.push({
+      name: `zones/${zone.fileName}`,
+      bytes: bytesFromDataUrl(zone.dataUrl),
+    });
+  });
+
+  const zipBlob = buildZipBlob(files);
+  const url = URL.createObjectURL(zipBlob);
+  triggerDownload(`${state.imageName || "infographie"}-export-animation.zip`, url, true);
+  setAnimationStatus(`Archive ZIP exportee: ${payload.zones.length} PNG, une slide HTML et les manifestes JSON.`);
 }
 
 function buildExportHtml(payload) {
@@ -3935,8 +4003,8 @@ function buildExportHtml(payload) {
         }, { left: Infinity, top: Infinity, right: -Infinity, bottom: -Infinity });
         const groupWidth = Math.max(1, bounds.right - bounds.left);
         const groupHeight = Math.max(1, bounds.bottom - bounds.top);
-        const targetScale = Math.min((stageWidth * 0.76) / groupWidth, (stageHeight * 0.76) / groupHeight);
-        const scale = Math.max(0.62, Math.min(1, targetScale));
+        const targetScale = Math.min((stageWidth * 0.9) / groupWidth, (stageHeight * 0.9) / groupHeight);
+        const scale = Math.max(0.62, targetScale);
         const groupCenterX = bounds.left + groupWidth / 2;
         const groupCenterY = bounds.top + groupHeight / 2;
         return {
@@ -3949,6 +4017,7 @@ function buildExportHtml(payload) {
         const animation = zoneEntry.data.animation;
         const focusPresentation = animation.focusPresentation || null;
         const hasFocus = Boolean(focusPresentation && focusPresentation.enabled);
+        const revealAtEnd = Boolean(animation.revealAtEnd);
         const revealIndex =
           typeof currentRevealIndex === "number" ? currentRevealIndex : getFirstRevealBatchIndexForStep(currentStep);
         const entryRevealIndex = getEntryRevealBatchIndex(zoneEntry);
@@ -3982,6 +4051,11 @@ function buildExportHtml(payload) {
           transform = buildTransform(0, 0, 1, 0);
           filter = "blur(" + focusAppearance.blur + "px) brightness(" + focusAppearance.brightness + ") contrast(" + focusAppearance.contrast + ") saturate(0.78)";
           boxShadow = "inset 0 0 0 9999px rgba(0, 0, 0, " + focusAppearance.veil + ")";
+        } else if (revealAtEnd && mode === "settled") {
+          opacity = 0.45;
+          transform = buildTransform(0, 0, 1, 0);
+          filter = "blur(1.5px) brightness(0.84) contrast(0.94) saturate(0.82)";
+          boxShadow = "inset 0 0 0 9999px rgba(0, 0, 0, 0.12)";
         } else if (focusAppearance && mode === "active") {
           opacity = 1;
           zIndex = "50";
@@ -4021,7 +4095,8 @@ function buildExportHtml(payload) {
             return;
           }
           if (zoneStep < step) {
-            applyPlaybackAppearance(zoneEntry, "settled", false, step, currentRevealIndex);
+            const shouldAttenuateLater = Boolean(zoneEntry.data.animation.revealAtEnd) && !zoneEntry.data.animation.focusPresentation?.enabled;
+            applyPlaybackAppearance(zoneEntry, shouldAttenuateLater ? "settled" : "settled", false, step, currentRevealIndex);
             return;
           }
           applyPlaybackAppearance(zoneEntry, "active", useRevealDelay, step, currentRevealIndex);
@@ -4341,8 +4416,8 @@ function createRuntimeController(stageElement, payload, options = {}) {
     );
     const groupWidth = Math.max(1, bounds.right - bounds.left);
     const groupHeight = Math.max(1, bounds.bottom - bounds.top);
-    const targetScale = Math.min((stageWidth * 0.76) / groupWidth, (stageHeight * 0.76) / groupHeight);
-    const scale = clamp(targetScale, 0.62, 1);
+    const targetScale = Math.min((stageWidth * 0.9) / groupWidth, (stageHeight * 0.9) / groupHeight);
+    const scale = Math.max(0.62, targetScale);
     const groupCenterX = bounds.left + groupWidth / 2;
     const groupCenterY = bounds.top + groupHeight / 2;
     return {
@@ -4360,6 +4435,7 @@ function createRuntimeController(stageElement, payload, options = {}) {
     const animation = entry.data.animation;
     const focusPresentation = animation.focusPresentation || null;
     const hasFocus = Boolean(focusPresentation?.enabled);
+    const revealAtEnd = Boolean(animation.revealAtEnd);
     const revealIndex =
       typeof currentRevealIndex === "number" ? currentRevealIndex : getFirstRevealBatchIndexForStep(currentStep);
     const entryRevealIndex = getEntryRevealBatchIndex(entry);
@@ -4389,6 +4465,11 @@ function createRuntimeController(stageElement, payload, options = {}) {
       transform = buildTransform(0, 0, 1, 0);
       filter = `blur(${focusAppearance.blur}px) brightness(${focusAppearance.brightness}) contrast(${focusAppearance.contrast}) saturate(0.78)`;
       boxShadow = `inset 0 0 0 9999px rgba(0, 0, 0, ${focusAppearance.veil})`;
+    } else if (revealAtEnd && mode === "settled") {
+      opacity = 0.45;
+      transform = buildTransform(0, 0, 1, 0);
+      filter = "blur(1.5px) brightness(0.84) contrast(0.94) saturate(0.82)";
+      boxShadow = "inset 0 0 0 9999px rgba(0, 0, 0, 0.12)";
     } else if (focusAppearance && mode === "active") {
       opacity = 1;
       zIndex = "50";
@@ -5298,6 +5379,116 @@ function triggerDownload(fileName, href, isObjectUrl = false) {
   if (isObjectUrl) {
     window.setTimeout(() => URL.revokeObjectURL(href), 1500);
   }
+}
+
+function buildZipBlob(files) {
+  const localParts = [];
+  const centralParts = [];
+  let offset = 0;
+
+  files.forEach((file) => {
+    const nameBytes = encodeText(sanitizeZipPath(file.name));
+    const bytes = file.bytes instanceof Uint8Array ? file.bytes : new Uint8Array(file.bytes);
+    const crc = crc32(bytes);
+    const localHeader = createZipLocalHeader(nameBytes, bytes, crc);
+    localParts.push(localHeader, bytes);
+    centralParts.push(createZipCentralHeader(nameBytes, bytes, crc, offset));
+    offset += localHeader.length + bytes.length;
+  });
+
+  const centralSize = centralParts.reduce((sum, part) => sum + part.length, 0);
+  const endRecord = createZipEndRecord(files.length, centralSize, offset);
+  return new Blob([...localParts, ...centralParts, endRecord], { type: "application/zip" });
+}
+
+function createZipLocalHeader(nameBytes, bytes, crc) {
+  const header = new Uint8Array(30 + nameBytes.length);
+  const view = new DataView(header.buffer);
+  view.setUint32(0, 0x04034b50, true);
+  view.setUint16(4, 20, true);
+  view.setUint16(6, 0x0800, true);
+  view.setUint16(8, 0, true);
+  view.setUint16(10, 0, true);
+  view.setUint16(12, 0, true);
+  view.setUint32(14, crc, true);
+  view.setUint32(18, bytes.length, true);
+  view.setUint32(22, bytes.length, true);
+  view.setUint16(26, nameBytes.length, true);
+  view.setUint16(28, 0, true);
+  header.set(nameBytes, 30);
+  return header;
+}
+
+function createZipCentralHeader(nameBytes, bytes, crc, localHeaderOffset) {
+  const header = new Uint8Array(46 + nameBytes.length);
+  const view = new DataView(header.buffer);
+  view.setUint32(0, 0x02014b50, true);
+  view.setUint16(4, 20, true);
+  view.setUint16(6, 20, true);
+  view.setUint16(8, 0x0800, true);
+  view.setUint16(10, 0, true);
+  view.setUint16(12, 0, true);
+  view.setUint16(14, 0, true);
+  view.setUint32(16, crc, true);
+  view.setUint32(20, bytes.length, true);
+  view.setUint32(24, bytes.length, true);
+  view.setUint16(28, nameBytes.length, true);
+  view.setUint16(30, 0, true);
+  view.setUint16(32, 0, true);
+  view.setUint16(34, 0, true);
+  view.setUint16(36, 0, true);
+  view.setUint32(38, 0, true);
+  view.setUint32(42, localHeaderOffset, true);
+  header.set(nameBytes, 46);
+  return header;
+}
+
+function createZipEndRecord(fileCount, centralSize, centralOffset) {
+  const record = new Uint8Array(22);
+  const view = new DataView(record.buffer);
+  view.setUint32(0, 0x06054b50, true);
+  view.setUint16(4, 0, true);
+  view.setUint16(6, 0, true);
+  view.setUint16(8, fileCount, true);
+  view.setUint16(10, fileCount, true);
+  view.setUint32(12, centralSize, true);
+  view.setUint32(16, centralOffset, true);
+  view.setUint16(20, 0, true);
+  return record;
+}
+
+function bytesFromDataUrl(dataUrl) {
+  const [, payload = ""] = dataUrl.split(",", 2);
+  const binary = atob(payload);
+  const bytes = new Uint8Array(binary.length);
+  for (let index = 0; index < binary.length; index += 1) {
+    bytes[index] = binary.charCodeAt(index);
+  }
+  return bytes;
+}
+
+function encodeText(value) {
+  return new TextEncoder().encode(value);
+}
+
+function sanitizeZipPath(path) {
+  return String(path)
+    .replaceAll("\\", "/")
+    .replace(/^\/+/, "")
+    .replaceAll("../", "")
+    .replaceAll("..", "")
+    .replace(/[<>:"|?*]/g, "_");
+}
+
+function crc32(bytes) {
+  let crc = 0xffffffff;
+  for (let index = 0; index < bytes.length; index += 1) {
+    crc ^= bytes[index];
+    for (let bit = 0; bit < 8; bit += 1) {
+      crc = (crc >>> 1) ^ (crc & 1 ? 0xedb88320 : 0);
+    }
+  }
+  return (crc ^ 0xffffffff) >>> 0;
 }
 
 function formatNumber(value) {
