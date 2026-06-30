@@ -38,3 +38,34 @@ test("buildStepSchedule keeps recaps after their reveal step", () => {
   );
   assert.equal(schedule[1].duration, 600);
 });
+
+test("getGroupFocusLayout centers the group without collapsing member positions", () => {
+  const layout = AnimationCore.getGroupFocusLayout(1000, 600, [
+    { left: 100, top: 200, width: 100, height: 100 },
+    { left: 300, top: 200, width: 100, height: 100 },
+  ]);
+
+  assert.deepEqual(layout, {
+    translateX: 250,
+    translateY: 50,
+    scale: 2.4,
+    centerX: 250,
+    centerY: 250,
+  });
+
+  const firstCenterAfterScale = layout.centerX + layout.translateX + (150 - layout.centerX) * layout.scale;
+  const secondCenterAfterScale = layout.centerX + layout.translateX + (350 - layout.centerX) * layout.scale;
+  assert.equal(secondCenterAfterScale - firstCenterAfterScale, 480);
+});
+
+test("resolveTimingGroupDelay reveals a focused timing group as one event", () => {
+  assert.equal(AnimationCore.resolveTimingGroupDelay(60, 80, 2, false, [60, 20, 100]), 220);
+  assert.equal(AnimationCore.resolveTimingGroupDelay(60, 80, 2, true, [60, 20, 100]), 20);
+});
+
+test("mergeGroupOrder preserves non-group slots while applying the current group order", () => {
+  assert.deepEqual(
+    AnimationCore.mergeGroupOrder(["a", "b", "c", "d", "e"], ["d", "b", "e"]),
+    ["a", "d", "c", "b", "e"]
+  );
+});

@@ -68,6 +68,66 @@
     return `translate(${x}px, ${y}px) scale(${scale}) rotate(${rotate}deg)`;
   }
 
+  function getGroupFocusLayout(stageWidth, stageHeight, boxes, fallbackScale = 1) {
+    const validBoxes = (Array.isArray(boxes) ? boxes : []).filter(
+      (box) =>
+        Number.isFinite(Number(box?.left)) &&
+        Number.isFinite(Number(box?.top)) &&
+        Number(box?.width) > 0 &&
+        Number(box?.height) > 0
+    );
+    if (!(stageWidth > 0) || !(stageHeight > 0) || !validBoxes.length) {
+      return { translateX: 0, translateY: 0, scale: fallbackScale, centerX: 0, centerY: 0 };
+    }
+
+    const bounds = validBoxes.reduce(
+      (acc, box) => ({
+        left: Math.min(acc.left, Number(box.left)),
+        top: Math.min(acc.top, Number(box.top)),
+        right: Math.max(acc.right, Number(box.left) + Number(box.width)),
+        bottom: Math.max(acc.bottom, Number(box.top) + Number(box.height)),
+      }),
+      { left: Infinity, top: Infinity, right: -Infinity, bottom: -Infinity }
+    );
+    const groupWidth = Math.max(1, bounds.right - bounds.left);
+    const groupHeight = Math.max(1, bounds.bottom - bounds.top);
+    const centerX = bounds.left + groupWidth / 2;
+    const centerY = bounds.top + groupHeight / 2;
+    const targetScale = Math.min((stageWidth * 0.82) / groupWidth, (stageHeight * 0.82) / groupHeight);
+    const scale = Math.max(0.62, Math.min(2.4, targetScale));
+    return {
+      translateX: stageWidth / 2 - centerX,
+      translateY: stageHeight / 2 - centerY,
+      scale,
+      centerX,
+      centerY,
+    };
+  }
+
+  function resolveTimingGroupDelay(baseDelay, stagger, index, synchronized, memberDelays = []) {
+    if (synchronized) {
+      const delays = memberDelays.map(Number).filter((delay) => Number.isFinite(delay) && delay >= 0);
+      return delays.length ? Math.min(...delays) : 0;
+    }
+    return Math.max(0, Number(baseDelay) || 0) + Math.max(0, Number(stagger) || 0) * Math.max(0, Number(index) || 0);
+  }
+
+  function mergeGroupOrder(globalIds, groupIds) {
+    const validGlobalIds = Array.isArray(globalIds) ? globalIds : [];
+    const globalIdSet = new Set(validGlobalIds);
+    const seen = new Set();
+    const orderedGroupIds = (Array.isArray(groupIds) ? groupIds : []).filter((id) => {
+      if (!globalIdSet.has(id) || seen.has(id)) {
+        return false;
+      }
+      seen.add(id);
+      return true;
+    });
+    const groupIdSet = new Set(orderedGroupIds);
+    let groupIndex = 0;
+    return validGlobalIds.map((id) => (groupIdSet.has(id) ? orderedGroupIds[groupIndex++] : id));
+  }
+
   function buildStepSchedule(items, recapGroups = []) {
     const steps = new Map();
 
@@ -105,6 +165,9 @@
     hiddenRotation,
     hiddenBlur,
     buildTransform,
+    getGroupFocusLayout,
+    resolveTimingGroupDelay,
+    mergeGroupOrder,
     buildStepSchedule,
   };
 

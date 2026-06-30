@@ -110,6 +110,8 @@ Sous l'apercu, une liste des zones permet maintenant de :
 - reordonner les zones avec poignees visuelles et boutons de deplacement,
 - faire correspondre plus facilement le rendu anime a la narration.
 
+Le bouton `Undo` ou le raccourci `Ctrl+Z` (`Cmd+Z` sur macOS) annule les modifications de zones, d'ordre, de groupes et de reglages d'animation. L'historique conserve les 40 dernieres etapes editables.
+
 ### Groupes d'apparition
 
 Sous l'apercu, le panneau `Groupes d'apparition` permet de :
@@ -124,6 +126,8 @@ Sous l'apercu, le panneau `Groupes d'apparition` permet de :
 Le groupe apparait alors de maniere synchronisee, avec un decalage progressif propre entre ses membres.
 
 Chaque zone d'un meme evenement peut conserver son propre effet d'apparition. Le groupe sert surtout a partager une etape commune et un decalage temporel, pas a imposer obligatoirement le meme effet visuel a tous les membres.
+
+Lorsqu'un membre d'un groupe d'apparition passe en mode focus, le focus s'applique a tout le groupe. Les membres apparaissent simultanement comme un seul evenement, puis sont centres et redimensionnes comme un seul ensemble tout en conservant leurs positions relatives; ils ne sont jamais empiles individuellement au centre de la slide. Le `stagger` reste memorise mais est suspendu pendant ce focus collectif.
 
 Chaque groupe dispose aussi d'un reglage de focus visuel:
 

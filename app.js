@@ -129,6 +129,7 @@ const deselectAllZonesButton = document.querySelector("#deselectAllZonesButton")
 const exportHtmlButton = document.querySelector("#exportHtmlButton");
 const playPreviewButton = document.querySelector("#playPreviewButton");
 const resetPreviewButton = document.querySelector("#resetPreviewButton");
+const undoButton = document.querySelector("#undoButton");
 const fullscreenPreviewButton = document.querySelector("#fullscreenPreviewButton");
 const createTimingGroupButton = document.querySelector("#createTimingGroupButton");
 const removeSelectedFromTimingGroupButton = document.querySelector("#removeSelectedFromTimingGroupButton");
@@ -219,6 +220,142 @@ const zoneRotateValue = document.querySelector("#zoneRotateValue");
 
 const zoneCardTemplate = document.querySelector("#zoneCardTemplate");
 
+const undoHistory = [];
+const UNDO_HISTORY_LIMIT = 40;
+let restoringUndoState = false;
+let lastUndoCheckpoint = { label: null, time: 0 };
+
+function cloneZonesForUndo(zones) {
+  return zones.map((zone) => ({
+    ...zone,
+    animation: { ...zone.animation },
+    subdivisionParent: zone.subdivisionParent ? structuredCloneProjectData(zone.subdivisionParent) : null,
+    subdivisionChildren: zone.subdivisionChildren ? structuredCloneProjectData(zone.subdivisionChildren) : null,
+  }));
+}
+
+function createUndoSnapshot() {
+  return {
+    zones: cloneZonesForUndo(state.zones),
+    groups: structuredCloneProjectData(state.groups),
+    selectedGroupId: state.selectedGroupId,
+    selectedFocusGroupId: state.selectedFocusGroupId,
+    selectedRecapGroupId: state.selectedRecapGroupId,
+    expandedFocusGroupIds: [...state.expandedFocusGroupIds],
+    selectedZoneId: state.selectedZoneId,
+    selectedZoneIds: [...state.selectedZoneIds],
+    animationSettings: { ...state.animationSettings },
+    stepEditor: { ...state.stepEditor },
+    detectionProfile: structuredCloneProjectData(state.detectionProfile),
+    detectionDiagnostics: state.detectionDiagnostics
+      ? structuredCloneProjectData(state.detectionDiagnostics)
+      : null,
+    detectionControls: {
+      preset: presetSelect.value,
+      threshold: thresholdRange.value,
+      minArea: minAreaRange.value,
+      padding: paddingRange.value,
+      mergeDistance: mergeDistanceRange.value,
+    },
+  };
+}
+
+function getUndoSnapshotSignature(snapshot) {
+  return JSON.stringify({
+    ...snapshot,
+    zones: snapshot.zones.map(({ dataUrl, ...zone }) => zone),
+  });
+}
+
+function checkpointUndo(label, options = {}) {
+  if (restoringUndoState || !state.sourceImage) {
+    return;
+  }
+  const now = Date.now();
+  if (options.coalesce && lastUndoCheckpoint.label === label && now - lastUndoCheckpoint.time < 600) {
+    lastUndoCheckpoint.time = now;
+    return;
+  }
+
+  const snapshot = createUndoSnapshot();
+  const signature = getUndoSnapshotSignature(snapshot);
+  if (undoHistory.at(-1)?.signature !== signature) {
+    undoHistory.push({ snapshot, signature, label });
+    if (undoHistory.length > UNDO_HISTORY_LIMIT) {
+      undoHistory.shift();
+    }
+  }
+  lastUndoCheckpoint = { label, time: now };
+  updateUndoButtonState();
+}
+
+function clearUndoHistory() {
+  undoHistory.length = 0;
+  lastUndoCheckpoint = { label: null, time: 0 };
+  updateUndoButtonState();
+}
+
+function updateUndoButtonState() {
+  undoButton.disabled = undoHistory.length === 0;
+  undoButton.title = undoHistory.length ? `Annuler: ${undoHistory.at(-1).label}` : "Aucune action a annuler";
+}
+
+function undoLastAction() {
+  if (!undoHistory.length) {
+    return;
+  }
+  const currentSignature = getUndoSnapshotSignature(createUndoSnapshot());
+  let entry = undoHistory.pop();
+  while (entry && entry.signature === currentSignature && undoHistory.length) {
+    entry = undoHistory.pop();
+  }
+  if (!entry || entry.signature === currentSignature) {
+    updateUndoButtonState();
+    return;
+  }
+
+  restoringUndoState = true;
+  resetPreviewPlayback(false);
+  state.zones = cloneZonesForUndo(entry.snapshot.zones);
+  state.groups = structuredCloneProjectData(entry.snapshot.groups);
+  state.selectedGroupId = entry.snapshot.selectedGroupId;
+  state.selectedFocusGroupId = entry.snapshot.selectedFocusGroupId;
+  state.selectedRecapGroupId = entry.snapshot.selectedRecapGroupId;
+  state.expandedFocusGroupIds = [...entry.snapshot.expandedFocusGroupIds];
+  state.selectedZoneId = entry.snapshot.selectedZoneId;
+  state.selectedZoneIds = [...entry.snapshot.selectedZoneIds];
+  state.animationSettings = { ...entry.snapshot.animationSettings };
+  state.stepEditor = { ...entry.snapshot.stepEditor };
+  state.detectionProfile = structuredCloneProjectData(entry.snapshot.detectionProfile);
+  state.detectionDiagnostics = entry.snapshot.detectionDiagnostics
+    ? structuredCloneProjectData(entry.snapshot.detectionDiagnostics)
+    : null;
+  presetSelect.value = entry.snapshot.detectionControls.preset;
+  thresholdRange.value = entry.snapshot.detectionControls.threshold;
+  minAreaRange.value = entry.snapshot.detectionControls.minArea;
+  paddingRange.value = entry.snapshot.detectionControls.padding;
+  mergeDistanceRange.value = entry.snapshot.detectionControls.mergeDistance;
+  downloadAllButton.disabled = state.zones.length === 0;
+
+  syncDetectionLabels();
+  updateDetectionDiagnostics();
+  syncAnimationFormControls();
+  syncAnimationLabels();
+  updateFormatLabel();
+  drawAnnotatedPreview();
+  renderZones(state.zones);
+  renderAnimationStage();
+  updateInspector();
+  loadStepEditorFromZones(false);
+  renderGroupsPanel();
+  renderZonesOrderPanel();
+  updateAnimationControlsState();
+  restoringUndoState = false;
+  lastUndoCheckpoint = { label: null, time: 0 };
+  updateUndoButtonState();
+  setAnimationStatus(`Action annulee: ${entry.label}.`);
+}
+
 function getZoneTimingGroupId(animation = {}) {
   if (typeof animation.timingGroupId === "string" && animation.timingGroupId) {
     return animation.timingGroupId;
@@ -247,6 +384,34 @@ function getGroupById(groupId) {
 
 function getGroupsByKind(kind) {
   return state.groups.filter((group) => group.kind === kind);
+}
+
+function getTimingGroupForZone(zone) {
+  const timingGroupId = getZoneTimingGroupId(zone?.animation);
+  return timingGroupId ? state.groups.find((group) => group.id === timingGroupId && group.kind === "timing") ?? null : null;
+}
+
+function expandZonesToTimingGroups(zones) {
+  const zoneIds = new Set();
+  zones.forEach((zone) => {
+    const timingGroup = getTimingGroupForZone(zone);
+    (timingGroup?.zoneIds ?? [zone.id]).forEach((zoneId) => zoneIds.add(zoneId));
+  });
+  return state.zones.filter((zone) => zoneIds.has(zone.id) && zone.animation.enabled);
+}
+
+function getEffectiveFocusGroupId(zone) {
+  const timingGroup = getTimingGroupForZone(zone);
+  if (timingGroup) {
+    const inheritedFocusGroupId = timingGroup.zoneIds
+      .map((zoneId) => state.zones.find((item) => item.id === zoneId))
+      .map((item) => getZoneFocusGroupId(item?.animation))
+      .find(Boolean);
+    if (inheritedFocusGroupId) {
+      return inheritedFocusGroupId;
+    }
+  }
+  return getZoneFocusGroupId(zone?.animation);
 }
 
 function getFocusGroupRevealIndex(group, currentStep) {
@@ -319,6 +484,7 @@ mergeDistanceRange.addEventListener("input", () => {
 });
 
 autoStepGapRange.addEventListener("input", () => {
+  checkpointUndo("pause entre etapes", { coalesce: true });
   state.animationSettings.autoStepGap = Number(autoStepGapRange.value);
   syncAnimationLabels();
   updateAnimationControlsState();
@@ -333,22 +499,26 @@ presetSelect.addEventListener("change", () => {
 });
 
 formatSelect.addEventListener("change", () => {
+  checkpointUndo("format de sortie");
   state.animationSettings.format = formatSelect.value;
   updateFormatLabel();
   renderAnimationStage();
 });
 
 startTriggerSelect.addEventListener("change", () => {
+  checkpointUndo("declenchement de l'animation");
   state.animationSettings.startTrigger = startTriggerSelect.value;
   updateAnimationControlsState();
 });
 
 stepModeSelect.addEventListener("change", () => {
+  checkpointUndo("mode de progression");
   state.animationSettings.stepMode = stepModeSelect.value;
   updateAnimationControlsState();
 });
 
 guideToggle.addEventListener("change", () => {
+  checkpointUndo("affichage du guide");
   state.animationSettings.showGuide = guideToggle.checked;
   renderAnimationStage();
 });
@@ -441,6 +611,7 @@ imageInput.addEventListener("change", async (event) => {
     state.selectedZoneId = null;
     state.selectedZoneIds = [];
     state.detectionDiagnostics = null;
+    clearUndoHistory();
 
     drawSourceImage();
     renderZones([]);
@@ -481,6 +652,7 @@ projectInput.addEventListener("change", async (event) => {
     const raw = await file.text();
     const project = JSON.parse(raw);
     await loadProjectFromPayload(project);
+    clearUndoHistory();
   } catch (error) {
     console.error(error);
     setStatus("Impossible d'ouvrir ce projet JSON.", "Verifie que le fichier n'est pas corrompu.");
@@ -523,8 +695,20 @@ playPreviewButton.addEventListener("click", () => {
   startPreviewPlayback();
 });
 
+undoButton.addEventListener("click", () => {
+  undoLastAction();
+});
+
 resetPreviewButton.addEventListener("click", () => {
-  resetPreviewPlayback(true);
+  checkpointUndo("reinitialisation de l'animation");
+  syncAnimationStepsToZoneOrder();
+  renderZones(state.zones);
+  renderAnimationStage();
+  renderGroupsPanel();
+  renderZonesOrderPanel();
+  updateInspector();
+  updateAnimationControlsState();
+  setAnimationStatus("Animation reinitialisee selon l'ordre actuel des zones.");
 });
 
 exportHtmlButton.addEventListener("click", () => {
@@ -602,7 +786,10 @@ animationStage.addEventListener("click", (event) => {
   }
 });
 
-previewCanvas.addEventListener("mousedown", handlePreviewCanvasPointerDown);
+previewCanvas.addEventListener("mousedown", (event) => {
+  checkpointUndo("edition de zone sur le canvas");
+  handlePreviewCanvasPointerDown(event);
+});
 previewCanvas.addEventListener("mousemove", handlePreviewCanvasPointerMove);
 previewCanvas.addEventListener("mouseleave", handlePreviewCanvasPointerLeave);
 zonesOrderList.addEventListener("dragover", handleZoneOrderListDragOver);
@@ -610,6 +797,13 @@ zonesOrderList.addEventListener("drop", handleZoneOrderListDrop);
 window.addEventListener("mouseup", handlePreviewCanvasPointerUp);
 
 window.addEventListener("keydown", (event) => {
+  if ((event.ctrlKey || event.metaKey) && !event.shiftKey && event.key.toLowerCase() === "z") {
+    event.preventDefault();
+    event.stopPropagation();
+    undoLastAction();
+    return;
+  }
+
   const target = event.target;
   if (
     target instanceof HTMLElement &&
@@ -1099,6 +1293,7 @@ function toggleSelectedZoneLock() {
   if (!zone) {
     return;
   }
+  checkpointUndo("verrouillage de zone");
   zone.locked = !zone.locked;
   drawAnnotatedPreview();
   renderZones(state.zones);
@@ -1348,6 +1543,7 @@ function refreshZoneAsset(zone) {
 }
 
 function createManualZone(box) {
+  checkpointUndo("ajout d'une zone");
   const enriched = enrichLocalZoneGeometry(
     {
       x: box.x,
@@ -1381,6 +1577,7 @@ function duplicateSelectedZone() {
   if (!source) {
     return;
   }
+  checkpointUndo("duplication de zone");
 
   const offset = 28;
   const box = {
@@ -1424,6 +1621,7 @@ function deleteSelectedZones() {
   if (!zoneIds.length) {
     return;
   }
+  checkpointUndo("suppression de zone");
 
   const orderedIds = getZonesInOrder().map((zone) => zone.id);
   const firstDeletedIndex = orderedIds.findIndex((id) => zoneIds.includes(id));
@@ -1468,6 +1666,7 @@ function nudgeSelectedZones(key, distance) {
     setStatus("Aucune zone deplacable.", "Deverrouille la zone selectionnee pour la deplacer au clavier.");
     return;
   }
+  checkpointUndo("deplacement de zone", { coalesce: true });
 
   const delta = {
     ArrowLeft: { x: -distance, y: 0 },
@@ -1506,6 +1705,7 @@ function removeZoneFromAnyGroup(zoneId, rerender = false) {
 }
 
 function runDetection() {
+  checkpointUndo("nouvelle detection");
   setStatus("Analyse en cours...", "Extraction des composantes visuelles.");
 
   const threshold = Number(thresholdRange.value);
@@ -1641,7 +1841,13 @@ function renderZones(zones) {
   }
 
   const fragment = document.createDocumentFragment();
-  zones.forEach((zone, index) => {
+  const orderedZones = [...zones].sort((a, b) => {
+    const orderA = a.animation.order ?? 0;
+    const orderB = b.animation.order ?? 0;
+    return orderA - orderB;
+  });
+  orderedZones.forEach((zone, index) => {
+    const zoneOrderNumber = (zone.animation.order ?? index) + 1;
     const card = zoneCardTemplate.content.firstElementChild.cloneNode(true);
     const preview = card.querySelector(".zone-preview");
     const toggle = card.querySelector(".zone-enabled-toggle");
@@ -1657,15 +1863,16 @@ function renderZones(zones) {
     const deferredButton = card.querySelector(".zone-group-deferred");
     const timingGroupButton = card.querySelector(".zone-group-timing");
     const focusGroupButton = card.querySelector(".zone-group-focus");
+    const resetModesButton = card.querySelector(".zone-reset-modes");
 
     if (state.selectedZoneIds.includes(zone.id)) {
       card.classList.add("selected");
     }
 
     preview.src = zone.dataUrl;
-    preview.alt = `Zone ${index + 1}`;
+    preview.alt = `Zone ${zoneOrderNumber}`;
     toggle.checked = zone.animation.enabled;
-    title.textContent = `Zone ${index + 1}`;
+    title.textContent = `Zone ${zoneOrderNumber}`;
     dimensions.textContent = `${zone.width} x ${zone.height} px`;
     position.textContent = `Origine: (${zone.x}, ${zone.y})`;
     step.textContent = zone.animation.enabled
@@ -1675,6 +1882,7 @@ function renderZones(zones) {
       : "Retiree de la slide";
 
     toggle.addEventListener("change", (event) => {
+      checkpointUndo("activation de zone");
       zone.animation.enabled = event.target.checked;
       drawAnnotatedPreview();
       renderZones(state.zones);
@@ -1697,8 +1905,14 @@ function renderZones(zones) {
 
     const hasMultiSelection = state.selectedZoneIds.length >= 2;
     const isDeferredReveal = getZoneRevealAtEnd(zone.animation);
-    const isFocusZone = Boolean(getZoneFocusGroupId(zone.animation));
+    const isFocusZone = Boolean(getEffectiveFocusGroupId(zone));
     const isRecapZone = Boolean(getZoneRecapGroupId(zone.animation));
+    const hasGroupOrMode = Boolean(
+      getZoneTimingGroupId(zone.animation) ||
+        getZoneFocusGroupId(zone.animation) ||
+        getZoneRecapGroupId(zone.animation) ||
+        isDeferredReveal
+    );
     deferredState.textContent = isDeferredReveal ? "Attenuee jusqu'a la fin" : "Reveal normal";
     deferredState.classList.toggle("active", isDeferredReveal);
     focusState.textContent = isFocusZone ? "Mode focus actif" : "Mode focus inactif";
@@ -1714,6 +1928,8 @@ function renderZones(zones) {
     focusGroupButton.textContent = isFocusZone ? "Focus actif" : "Mode focus";
     focusGroupButton.classList.toggle("active", isFocusZone);
     focusGroupButton.setAttribute("aria-pressed", String(isFocusZone));
+    resetModesButton.disabled = !hasGroupOrMode;
+    resetModesButton.title = "Retirer cette zone de tous les groupes et modes";
     deferredButton.addEventListener("click", (event) => {
       event.stopPropagation();
       toggleZoneDeferredReveal(zone.id);
@@ -1725,6 +1941,10 @@ function renderZones(zones) {
     focusGroupButton.addEventListener("click", (event) => {
       event.stopPropagation();
       toggleZoneFocusMode(zone.id);
+    });
+    resetModesButton.addEventListener("click", (event) => {
+      event.stopPropagation();
+      resetZoneGroupsAndModes(zone.id);
     });
 
     fragment.append(card);
@@ -1738,26 +1958,34 @@ function toggleZoneFocusMode(zoneId) {
   if (!zone || !zone.animation.enabled) {
     return;
   }
+  checkpointUndo("mode focus");
 
-  if (getZoneFocusGroupId(zone.animation)) {
-    removeZoneFromGroup(zone.id, "focus");
-    setAnimationStatus("Zone retiree du mode focus.");
+  const focusZones = expandZonesToTimingGroups([zone]);
+  const activeFocusGroupIds = new Set(focusZones.map((item) => getZoneFocusGroupId(item.animation)).filter(Boolean));
+  if (activeFocusGroupIds.size) {
+    focusZones.forEach((item, index) => {
+      removeZoneFromGroupsOfKind(item.id, "focus", index === focusZones.length - 1);
+    });
+    setAnimationStatus("Groupe d'apparition retire du mode focus.");
     return;
   }
 
   state.selectedZoneId = zone.id;
-  state.selectedZoneIds = [zone.id];
+  state.selectedZoneIds = focusZones.map((item) => item.id);
+  const timingGroup = getTimingGroupForZone(zone);
   const group = {
     id: makeId(state.groups.length + 1),
     kind: "focus",
-    name: `Focus zone ${(zone.animation.order ?? 0) + 1}`,
+    name: timingGroup ? `Focus ${timingGroup.name}` : `Focus zone ${(zone.animation.order ?? 0) + 1}`,
     presentation: createDefaultGroupPresentation(),
     zoneIds: [],
   };
-  removeZoneFromGroupsOfKind(zone.id, "focus", false);
-  zone.animation.revealAtEnd = false;
-  zone.animation.focusGroupId = group.id;
-  group.zoneIds.push(zone.id);
+  focusZones.forEach((item) => {
+    removeZoneFromGroupsOfKind(item.id, "focus", false, group.id);
+    item.animation.revealAtEnd = false;
+    item.animation.focusGroupId = group.id;
+    group.zoneIds.push(item.id);
+  });
   state.groups.push(group);
   state.selectedFocusGroupId = group.id;
   renderZones(state.zones);
@@ -1765,17 +1993,18 @@ function toggleZoneFocusMode(zoneId) {
   updateInspector();
   renderGroupsPanel();
   updateAnimationControlsState();
-  setAnimationStatus("Zone placee en mode focus.");
+  setAnimationStatus(timingGroup ? "Groupe d'apparition place en mode focus." : "Zone placee en mode focus.");
 }
 
 function toggleZoneDeferredReveal(zoneId) {
   const zone = state.zones.find((item) => item.id === zoneId);
-  if (!zone || !zone.animation.enabled || getZoneFocusGroupId(zone.animation)) {
-    if (zone && getZoneFocusGroupId(zone.animation)) {
+  if (!zone || !zone.animation.enabled || getEffectiveFocusGroupId(zone)) {
+    if (zone && getEffectiveFocusGroupId(zone)) {
       setAnimationStatus("Retire le mode focus avant d'atténuer la zone.");
     }
     return;
   }
+  checkpointUndo("mode attenuation");
 
   zone.animation.revealAtEnd = !getZoneRevealAtEnd(zone.animation);
   renderZones(state.zones);
@@ -1783,6 +2012,33 @@ function toggleZoneDeferredReveal(zoneId) {
   updateInspector();
   updateAnimationControlsState();
   setAnimationStatus(zone.animation.revealAtEnd ? "Zone attenuee jusqu'a la fin." : "Attenuation retiree.");
+}
+
+function resetZoneGroupsAndModes(zoneId) {
+  const zone = state.zones.find((item) => item.id === zoneId);
+  if (!zone) {
+    return;
+  }
+  checkpointUndo("reset groupes et modes");
+
+  const timingGroup = getTimingGroupForZone(zone);
+  if (timingGroup) {
+    syncZoneOrderToTimingGroupMemberOrder(timingGroup);
+  }
+  removeZoneFromGroupsOfKind(zone.id, "timing", false);
+  removeZoneFromGroupsOfKind(zone.id, "focus", false);
+  removeZoneFromGroupsOfKind(zone.id, "recap", false);
+  zone.animation.revealAtEnd = false;
+  syncAnimationStepsToZoneOrder();
+
+  drawAnnotatedPreview();
+  renderZones(state.zones);
+  renderAnimationStage();
+  updateInspector();
+  renderGroupsPanel();
+  renderZonesOrderPanel();
+  updateAnimationControlsState();
+  setAnimationStatus("Groupes et modes de la zone reinitialises.");
 }
 
 function renderAnimationStage() {
@@ -1890,6 +2146,7 @@ function updateSelectedZoneAnimation(patch, rerender = true) {
   if (!zone) {
     return;
   }
+  checkpointUndo("reglage de zone", { coalesce: true });
 
   zone.animation = {
     ...zone.animation,
@@ -1909,6 +2166,7 @@ function updateSelectedZoneAnimation(patch, rerender = true) {
 }
 
 function updateAllZonesEnabled(enabled) {
+  checkpointUndo(enabled ? "activation de toutes les zones" : "desactivation de toutes les zones");
   state.zones.forEach((zone) => {
     zone.animation.enabled = enabled;
   });
@@ -1944,7 +2202,7 @@ function updateAnimationControlsState() {
     !hasSelectedZone || getSelectedZones().every((zone) => !getZoneTimingGroupId(zone.animation));
   createFocusGroupButton.disabled = !hasSelectedZone;
   removeSelectedFromFocusGroupButton.disabled =
-    !hasSelectedZone || getSelectedZones().every((zone) => !getZoneFocusGroupId(zone.animation));
+    !hasSelectedZone || getSelectedZones().every((zone) => !getEffectiveFocusGroupId(zone));
   createRecapGroupButton.disabled = !hasMultiSelection;
   removeSelectedFromRecapGroupButton.disabled =
     !hasSelectedZone || getSelectedZones().every((zone) => !getZoneRecapGroupId(zone.animation));
@@ -2114,6 +2372,7 @@ function moveZoneOrder(zoneId, direction) {
   if (index < 0 || nextIndex < 0 || nextIndex >= ordered.length) {
     return;
   }
+  checkpointUndo("ordre des zones");
 
   const [zone] = ordered.splice(index, 1);
   ordered.splice(nextIndex, 0, zone);
@@ -2121,6 +2380,7 @@ function moveZoneOrder(zoneId, direction) {
     item.animation.order = position;
   });
   syncGroupMemberOrderToZoneOrder();
+  syncAnimationStepsToZoneOrder();
 
   renderZones(state.zones);
   renderAnimationStage();
@@ -2136,6 +2396,7 @@ function moveZoneOrderToTarget(draggedZoneId, targetZoneId, placement = "before"
   if (draggedIndex < 0) {
     return;
   }
+  checkpointUndo("ordre des zones");
 
   const [draggedZone] = ordered.splice(draggedIndex, 1);
   const targetIndex = ordered.findIndex((zone) => zone.id === targetZoneId);
@@ -2150,6 +2411,7 @@ function moveZoneOrderToTarget(draggedZoneId, targetZoneId, placement = "before"
     zone.animation.order = index;
   });
   syncGroupMemberOrderToZoneOrder();
+  syncAnimationStepsToZoneOrder();
   renderZones(state.zones);
   renderAnimationStage();
   renderZonesOrderPanel();
@@ -2164,6 +2426,7 @@ function moveZoneOrderToPosition(zoneId, targetPosition) {
   if (currentIndex < 0) {
     return;
   }
+  checkpointUndo("ordre des zones");
 
   const clampedIndex = clamp(Math.round(targetPosition) - 1, 0, ordered.length - 1);
   const [zone] = ordered.splice(currentIndex, 1);
@@ -2172,6 +2435,7 @@ function moveZoneOrderToPosition(zoneId, targetPosition) {
     item.animation.order = index;
   });
   syncGroupMemberOrderToZoneOrder();
+  syncAnimationStepsToZoneOrder();
   drawAnnotatedPreview();
   renderZones(state.zones);
   renderAnimationStage();
@@ -2231,12 +2495,14 @@ function moveZoneOrderToEnd(zoneId) {
   if (!zone) {
     return;
   }
+  checkpointUndo("ordre des zones");
 
   ordered.push(zone);
   ordered.forEach((item, index) => {
     item.animation.order = index;
   });
   syncGroupMemberOrderToZoneOrder();
+  syncAnimationStepsToZoneOrder();
   renderZones(state.zones);
   renderAnimationStage();
   renderZonesOrderPanel();
@@ -2285,11 +2551,57 @@ function syncGroupMemberOrderToZoneOrder() {
   });
 }
 
+function syncAnimationStepsToZoneOrder() {
+  const assignedTimingGroupIds = new Set();
+  let nextStep = 1;
+  getZonesInOrder().forEach((zone) => {
+    const timingGroup = getTimingGroupForZone(zone);
+    if (!timingGroup) {
+      zone.animation.step = nextStep;
+      nextStep += 1;
+      return;
+    }
+    if (assignedTimingGroupIds.has(timingGroup.id)) {
+      return;
+    }
+
+    timingGroup.step = nextStep;
+    timingGroup.zoneIds.forEach((zoneId) => {
+      const member = state.zones.find((item) => item.id === zoneId);
+      if (member) {
+        member.animation.step = nextStep;
+      }
+    });
+    assignedTimingGroupIds.add(timingGroup.id);
+    nextStep += 1;
+  });
+}
+
+function syncZoneOrderToTimingGroupMemberOrder(group) {
+  if (!group || group.kind !== "timing") {
+    return;
+  }
+  const orderedZones = getZonesInOrder();
+  const mergedIds = AnimationCore.mergeGroupOrder(
+    orderedZones.map((zone) => zone.id),
+    group.zoneIds
+  );
+  mergedIds.forEach((zoneId, index) => {
+    const zone = state.zones.find((item) => item.id === zoneId);
+    if (zone) {
+      zone.animation.order = index;
+    }
+  });
+  syncGroupMemberOrderToZoneOrder();
+  syncAnimationStepsToZoneOrder();
+}
+
 function applyPresentationPreset(mode) {
   const orderedZones = getZonesInOrder().filter((zone) => zone.animation.enabled);
   if (!orderedZones.length) {
     return;
   }
+  checkpointUndo("preset de presentation");
 
   const format = FORMATS[state.animationSettings.format];
   const fit = state.sourceImage
@@ -2522,6 +2834,7 @@ function applyStepSettings() {
   if (!zones.length) {
     return;
   }
+  checkpointUndo("reglage d'etape");
 
   zones.forEach((zone, index) => {
     zone.animation.effect = state.stepEditor.effect;
@@ -2550,6 +2863,7 @@ function subdivideSelectedZone(mode) {
   if (!zone || !state.sourceImage) {
     return;
   }
+  checkpointUndo("redecoupage de zone");
 
   const subBoxes = analyzeZoneSubdivision(zone, mode);
   if (subBoxes.length < 2) {
@@ -2614,6 +2928,7 @@ function resetSubdivisionForSelection() {
     splitZoneSummary.textContent = "Aucun second decoupage a reinitialiser sur la selection courante.";
     return;
   }
+  checkpointUndo("reset du redecoupage");
 
   const childIds = [...parent.childIds];
   const firstChildIndex = state.zones.findIndex((item) => childIds.includes(item.id));
@@ -3641,15 +3956,26 @@ function resolveZoneAnimationForExport(zone) {
     return orderA - orderB;
   });
   const index = Math.max(0, orderedZoneIds.indexOf(zone.id));
+  const synchronizeFocusedGroup = Boolean(focusPresentation?.enabled);
+  const memberDelays = group.zoneIds
+    .map((zoneId) => state.zones.find((item) => item.id === zoneId))
+    .filter((item) => item?.animation.enabled)
+    .map((item) => item.animation.delay);
   animation.step = group.step;
-  animation.delay = Math.max(0, animation.delay) + Math.max(0, group.stagger) * index;
+  animation.delay = AnimationCore.resolveTimingGroupDelay(
+    animation.delay,
+    group.stagger,
+    index,
+    synchronizeFocusedGroup,
+    memberDelays
+  );
   animation.timingGroupId = group.id;
   animation.groupId = group.id;
   return animation;
 }
 
 function resolveZoneFocusPresentation(zone) {
-  const focusGroupId = getZoneFocusGroupId(zone.animation);
+  const focusGroupId = getEffectiveFocusGroupId(zone);
   if (!focusGroupId) {
     return null;
   }
@@ -3955,20 +4281,52 @@ function buildExportHtml(payload) {
         };
       }
 
-      function getFocusActiveTransform(zoneEntry, focusAppearance) {
+      function getFocusUnitEntries(zoneEntry) {
+        const timingGroupId = zoneEntry.data.animation.timingGroupId || zoneEntry.data.animation.groupId;
+        if (!timingGroupId) {
+          return [zoneEntry];
+        }
+        const groupedEntries = zones.filter((candidate) => {
+          const candidateGroupId = candidate.data.animation.timingGroupId || candidate.data.animation.groupId;
+          return candidateGroupId === timingGroupId && candidate.data.animation.focusPresentation?.enabled;
+        });
+        return groupedEntries.length ? groupedEntries : [zoneEntry];
+      }
+
+      function getFocusUnitRevealBatchIndex(zoneEntry) {
+        return Math.max(...getFocusUnitEntries(zoneEntry).map(getEntryRevealBatchIndex));
+      }
+
+      function getFocusActiveLayout(zoneEntry, focusAppearance) {
         const stageWidth = stage.clientWidth;
         const stageHeight = stage.clientHeight;
-        const zoneWidth = zoneEntry.element.offsetWidth;
-        const zoneHeight = zoneEntry.element.offsetHeight;
-        if (!stageWidth || !stageHeight || !zoneWidth || !zoneHeight) {
-          return buildTransform(0, 0, focusAppearance.scale, 0);
+        const focusEntries = getFocusUnitEntries(zoneEntry);
+        const boxes = focusEntries.map((entry) => ({
+          left: entry.element.offsetLeft,
+          top: entry.element.offsetTop,
+          width: entry.element.offsetWidth,
+          height: entry.element.offsetHeight,
+        }));
+        if (!stageWidth || !stageHeight || boxes.some((box) => !box.width || !box.height)) {
+          return { transform: buildTransform(0, 0, focusAppearance.scale, 0), origin: "center center" };
         }
 
-        const zoneCenterX = zoneEntry.element.offsetLeft + zoneWidth / 2;
-        const zoneCenterY = zoneEntry.element.offsetTop + zoneHeight / 2;
-        const targetScale = Math.min((stageWidth * 0.72) / zoneWidth, (stageHeight * 0.72) / zoneHeight);
-        const scale = Math.max(focusAppearance.scale, Math.min(2.4, Math.max(1.15, targetScale)));
-        return buildTransform(stageWidth / 2 - zoneCenterX, stageHeight / 2 - zoneCenterY, scale, 0);
+        const bounds = boxes.reduce((acc, box) => ({
+          left: Math.min(acc.left, box.left),
+          top: Math.min(acc.top, box.top),
+          right: Math.max(acc.right, box.left + box.width),
+          bottom: Math.max(acc.bottom, box.top + box.height),
+        }), { left: Infinity, top: Infinity, right: -Infinity, bottom: -Infinity });
+        const groupWidth = Math.max(1, bounds.right - bounds.left);
+        const groupHeight = Math.max(1, bounds.bottom - bounds.top);
+        const groupCenterX = bounds.left + groupWidth / 2;
+        const groupCenterY = bounds.top + groupHeight / 2;
+        const targetScale = Math.min((stageWidth * 0.82) / groupWidth, (stageHeight * 0.82) / groupHeight);
+        const scale = Math.max(0.62, Math.min(2.4, targetScale));
+        return {
+          transform: buildTransform(stageWidth / 2 - groupCenterX, stageHeight / 2 - groupCenterY, scale, 0),
+          origin: (groupCenterX - zoneEntry.element.offsetLeft) + "px " + (groupCenterY - zoneEntry.element.offsetTop) + "px",
+        };
       }
 
       function getRecapEntries(group) {
@@ -4013,8 +4371,8 @@ function buildExportHtml(payload) {
         const revealAtEnd = Boolean(animation.revealAtEnd);
         const revealIndex =
           typeof currentRevealIndex === "number" ? currentRevealIndex : getFirstRevealBatchIndexForStep(currentStep);
-        const entryRevealIndex = getEntryRevealBatchIndex(zoneEntry);
-        const focusDepth = hasFocus && mode === "settled" ? Math.max(1, revealIndex - entryRevealIndex) : 0;
+        const focusRevealIndex = hasFocus ? getFocusUnitRevealBatchIndex(zoneEntry) : 0;
+        const focusDepth = hasFocus && mode === "settled" ? Math.max(1, revealIndex - focusRevealIndex) : 0;
         const focusAppearance = hasFocus ? getFocusAppearance(focusPresentation, focusDepth) : null;
         const transitionDelay = mode === "active" && useRevealDelay ? animation.delay + "ms" : "0ms";
         const transitionDuration = mode === "recap"
@@ -4050,11 +4408,14 @@ function buildExportHtml(payload) {
           filter = "blur(1.5px) brightness(0.97) contrast(0.99) saturate(0.94)";
           boxShadow = "inset 0 0 0 9999px rgba(0, 0, 0, 0.02)";
         } else if (focusAppearance && mode === "active") {
+          const focusLayout = getFocusActiveLayout(zoneEntry, focusAppearance);
+          const isGroupedFocus = Boolean(animation.timingGroupId || animation.groupId);
           opacity = 1;
           zIndex = "50";
-          transform = getFocusActiveTransform(zoneEntry, focusAppearance);
+          transform = focusLayout.transform;
+          transformOrigin = focusLayout.origin;
           filter = "blur(" + focusAppearance.blur + "px) brightness(1.03) contrast(1.04) saturate(1)";
-          boxShadow = "0 20px 70px rgba(0, 0, 0, 0.28)";
+          boxShadow = isGroupedFocus ? "none" : "0 20px 70px rgba(0, 0, 0, 0.28)";
         } else if (mode === "recap") {
           const recapLayout = getRecapLayout(zoneEntry, recapEntries || []);
           opacity = 1;
@@ -4150,8 +4511,8 @@ function buildExportHtml(payload) {
           if (!focusPresentation || !focusPresentation.enabled) {
             return;
           }
-          const entryRevealIndex = getEntryRevealBatchIndex(zoneEntry);
-          if (entryRevealIndex < currentRevealIndex) {
+          const focusRevealIndex = getFocusUnitRevealBatchIndex(zoneEntry);
+          if (focusRevealIndex < currentRevealIndex) {
             applyPlaybackAppearance(zoneEntry, "settled", false, currentStep, currentRevealIndex);
           }
         });
@@ -4369,20 +4730,41 @@ function createRuntimeController(stageElement, payload, options = {}) {
     };
   }
 
-  function getFocusActiveTransform(entry, focusAppearance) {
+  function getFocusUnitEntries(entry) {
+    const timingGroupId = entry.data.animation.timingGroupId || entry.data.animation.groupId;
+    if (!timingGroupId) {
+      return [entry];
+    }
+    const groupedEntries = entries.filter((candidate) => {
+      const candidateGroupId = candidate.data.animation.timingGroupId || candidate.data.animation.groupId;
+      return candidateGroupId === timingGroupId && candidate.data.animation.focusPresentation?.enabled;
+    });
+    return groupedEntries.length ? groupedEntries : [entry];
+  }
+
+  function getFocusUnitRevealBatchIndex(entry) {
+    return Math.max(...getFocusUnitEntries(entry).map(getEntryRevealBatchIndex));
+  }
+
+  function getFocusActiveLayout(entry, focusAppearance) {
     const stageWidth = stageElement.clientWidth;
     const stageHeight = stageElement.clientHeight;
-    const zoneWidth = entry.element.offsetWidth;
-    const zoneHeight = entry.element.offsetHeight;
-    if (!stageWidth || !stageHeight || !zoneWidth || !zoneHeight) {
-      return buildTransform(0, 0, focusAppearance.scale, 0);
+    const focusEntries = getFocusUnitEntries(entry);
+    const boxes = focusEntries.map((focusEntry) => ({
+      left: focusEntry.element.offsetLeft,
+      top: focusEntry.element.offsetTop,
+      width: focusEntry.element.offsetWidth,
+      height: focusEntry.element.offsetHeight,
+    }));
+    if (!stageWidth || !stageHeight || boxes.some((box) => !box.width || !box.height)) {
+      return { transform: buildTransform(0, 0, focusAppearance.scale, 0), origin: "center center" };
     }
 
-    const zoneCenterX = entry.element.offsetLeft + zoneWidth / 2;
-    const zoneCenterY = entry.element.offsetTop + zoneHeight / 2;
-    const targetScale = Math.min((stageWidth * 0.72) / zoneWidth, (stageHeight * 0.72) / zoneHeight);
-    const scale = Math.max(focusAppearance.scale, Math.min(2.4, Math.max(1.15, targetScale)));
-    return buildTransform(stageWidth / 2 - zoneCenterX, stageHeight / 2 - zoneCenterY, scale, 0);
+    const layout = AnimationCore.getGroupFocusLayout(stageWidth, stageHeight, boxes, focusAppearance.scale);
+    return {
+      transform: buildTransform(layout.translateX, layout.translateY, layout.scale, 0),
+      origin: `${layout.centerX - entry.element.offsetLeft}px ${layout.centerY - entry.element.offsetTop}px`,
+    };
   }
 
   function getRecapLayout(entry, recapEntries) {
@@ -4431,8 +4813,8 @@ function createRuntimeController(stageElement, payload, options = {}) {
     const revealAtEnd = Boolean(animation.revealAtEnd);
     const revealIndex =
       typeof currentRevealIndex === "number" ? currentRevealIndex : getFirstRevealBatchIndexForStep(currentStep);
-    const entryRevealIndex = getEntryRevealBatchIndex(entry);
-    const focusDepth = hasFocus && mode === "settled" ? Math.max(1, revealIndex - entryRevealIndex) : 0;
+    const focusRevealIndex = hasFocus ? getFocusUnitRevealBatchIndex(entry) : 0;
+    const focusDepth = hasFocus && mode === "settled" ? Math.max(1, revealIndex - focusRevealIndex) : 0;
     const focusAppearance = hasFocus ? getFocusAppearance(focusPresentation, focusDepth) : null;
     const transitionDelay = mode === "active" && useRevealDelay ? `${Math.max(0, animation.delay)}ms` : "0ms";
     const transitionDuration = mode === "recap"
@@ -4464,11 +4846,14 @@ function createRuntimeController(stageElement, payload, options = {}) {
       filter = "blur(1.5px) brightness(0.97) contrast(0.99) saturate(0.94)";
       boxShadow = "inset 0 0 0 9999px rgba(0, 0, 0, 0.02)";
     } else if (focusAppearance && mode === "active") {
+      const focusLayout = getFocusActiveLayout(entry, focusAppearance);
+      const isGroupedFocus = Boolean(animation.timingGroupId || animation.groupId);
       opacity = 1;
       zIndex = "50";
-      transform = getFocusActiveTransform(entry, focusAppearance);
+      transform = focusLayout.transform;
+      transformOrigin = focusLayout.origin;
       filter = `blur(${focusAppearance.blur}px) brightness(1.03) contrast(1.04) saturate(1)`;
-      boxShadow = "0 20px 70px rgba(0, 0, 0, 0.28)";
+      boxShadow = isGroupedFocus ? "none" : "0 20px 70px rgba(0, 0, 0, 0.28)";
     } else if (mode === "recap") {
       const recapLayout = getRecapLayout(entry, recapEntries);
       opacity = 1;
@@ -4562,8 +4947,8 @@ function createRuntimeController(stageElement, payload, options = {}) {
       if (!focusPresentation?.enabled) {
         return;
       }
-      const entryRevealIndex = getEntryRevealBatchIndex(entry);
-      if (entryRevealIndex < currentRevealIndex) {
+      const focusRevealIndex = getFocusUnitRevealBatchIndex(entry);
+      if (focusRevealIndex < currentRevealIndex) {
         applyPlaybackAppearance(entry, "settled", false, currentStep, currentRevealIndex);
       }
     });

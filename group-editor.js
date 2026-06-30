@@ -11,7 +11,10 @@ function createMiniField(labelText, value, onChange, type = "text", attributes =
   Object.entries(attributes).forEach(([name, attributeValue]) => {
     input.setAttribute(name, String(attributeValue));
   });
-  input.addEventListener("change", () => onChange(input.value));
+  input.addEventListener("change", () => {
+    checkpointUndo("reglage de groupe");
+    onChange(input.value);
+  });
 
   wrapper.append(label, input);
   return wrapper;
@@ -59,6 +62,10 @@ function renderTimingGroupsPanel() {
 
   const fragment = document.createDocumentFragment();
   timingGroups.forEach((group) => {
+    const isFocused = group.zoneIds.some((zoneId) => {
+      const zone = state.zones.find((item) => item.id === zoneId);
+      return zone ? Boolean(getEffectiveFocusGroupId(zone)) : false;
+    });
     const card = document.createElement("article");
     card.className = "group-card";
     if (state.selectedGroupId === group.id) {
@@ -74,7 +81,9 @@ function renderTimingGroupsPanel() {
     title.textContent = group.name;
     const meta = document.createElement("p");
     meta.className = "group-meta";
-    meta.textContent = `${getGroupZoneCountText(group)} • etape ${group.step} • stagger ${group.stagger} ms`;
+    meta.textContent = isFocused
+      ? `${getGroupZoneCountText(group)} • etape ${group.step} • focus simultane`
+      : `${getGroupZoneCountText(group)} • etape ${group.step} • stagger ${group.stagger} ms`;
     titleWrap.append(title, meta);
 
     const removeButton = document.createElement("button");
@@ -114,6 +123,9 @@ function renderTimingGroupsPanel() {
       },
       "number"
     );
+    const staggerInput = staggerField.querySelector("input");
+    staggerInput.disabled = isFocused;
+    staggerInput.title = isFocused ? "Le stagger est suspendu pendant le focus collectif." : "";
 
     controls.append(nameField, stepField, staggerField);
 
@@ -184,6 +196,7 @@ function renderTimingGroupsPanel() {
         effectSelect.append(element);
       });
       effectSelect.addEventListener("change", () => {
+        checkpointUndo("effet de zone groupee");
         zone.animation.effect = effectSelect.value;
         renderZones(state.zones);
         renderAnimationStage();
@@ -292,6 +305,7 @@ function renderFocusGroupsPanel() {
     focusToggleInput.type = "checkbox";
     focusToggleInput.checked = group.presentation.enabled;
     focusToggleInput.addEventListener("change", () => {
+      checkpointUndo("reglage du focus");
       group.presentation.enabled = focusToggleInput.checked;
       renderGroupsPanel();
       renderAnimationStage();
@@ -424,6 +438,7 @@ function renderFocusGroupsPanel() {
         button.classList.add("active");
       }
       button.addEventListener("click", () => {
+        checkpointUndo("preset de focus");
         group.presentation = applyGroupFocusPreset(presetKey);
         renderGroupsPanel();
         renderAnimationStage();
@@ -643,6 +658,7 @@ function createNewTimingGroup() {
     setAnimationStatus("Selectionne au moins 2 zones avec Ctrl pour creer un groupe d'apparition.");
     return;
   }
+  checkpointUndo("creation d'un groupe d'apparition");
 
   const group = {
     id: makeId(state.groups.length + 1),
@@ -654,7 +670,7 @@ function createNewTimingGroup() {
   };
   state.groups.push(group);
   state.selectedGroupId = group.id;
-  assignSelectionToTimingGroup(group.id);
+  assignSelectionToTimingGroup(group.id, false);
   renderGroupsPanel();
   updateAnimationControlsState();
 }
@@ -665,6 +681,7 @@ function createNewFocusGroup() {
     setAnimationStatus("Selectionne au moins une zone pour la mettre en focus.");
     return;
   }
+  checkpointUndo("creation d'un groupe focus");
 
   const group = {
     id: makeId(state.groups.length + 1),
@@ -675,7 +692,7 @@ function createNewFocusGroup() {
   };
   state.groups.push(group);
   state.selectedFocusGroupId = group.id;
-  assignSelectionToFocusGroup(group.id);
+  assignSelectionToFocusGroup(group.id, false);
   renderGroupsPanel();
   updateAnimationControlsState();
 }
@@ -686,6 +703,7 @@ function createNewRecapGroup() {
     setAnimationStatus("Selectionne au moins 2 zones avec Ctrl pour creer un recap.");
     return;
   }
+  checkpointUndo("creation d'un groupe recap");
 
   const group = {
     id: makeId(state.groups.length + 1),
@@ -695,16 +713,19 @@ function createNewRecapGroup() {
   };
   state.groups.push(group);
   state.selectedRecapGroupId = group.id;
-  assignSelectionToRecapGroup(group.id);
+  assignSelectionToRecapGroup(group.id, false);
   renderGroupsPanel();
   updateAnimationControlsState();
 }
 
-function assignSelectionToTimingGroup(groupId) {
+function assignSelectionToTimingGroup(groupId, recordUndo = true) {
   const zones = getSelectedZones();
   const group = state.groups.find((item) => item.id === groupId && item.kind === "timing");
   if (!zones.length || !group) {
     return;
+  }
+  if (recordUndo) {
+    checkpointUndo("ajout au groupe d'apparition");
   }
 
   zones.forEach((zone) => {
@@ -724,15 +745,19 @@ function assignSelectionToTimingGroup(groupId) {
   updateAnimationControlsState();
 }
 
-function assignSelectionToFocusGroup(groupId) {
-  const zones = getSelectedZones();
+function assignSelectionToFocusGroup(groupId, recordUndo = true) {
+  const zones = expandZonesToTimingGroups(getSelectedZones());
   const group = state.groups.find((item) => item.id === groupId && item.kind === "focus");
   if (!zones.length || !group) {
     return;
   }
+  if (recordUndo) {
+    checkpointUndo("ajout au groupe focus");
+  }
 
   zones.forEach((zone) => {
     removeZoneFromGroupsOfKind(zone.id, "focus", false, group.id);
+    zone.animation.revealAtEnd = false;
     zone.animation.focusGroupId = group.id;
     if (!group.zoneIds.includes(zone.id)) {
       group.zoneIds.push(zone.id);
@@ -746,11 +771,14 @@ function assignSelectionToFocusGroup(groupId) {
   updateAnimationControlsState();
 }
 
-function assignSelectionToRecapGroup(groupId) {
+function assignSelectionToRecapGroup(groupId, recordUndo = true) {
   const zones = getSelectedZones();
   const group = state.groups.find((item) => item.id === groupId && item.kind === "recap");
   if (!zones.length || !group) {
     return;
+  }
+  if (recordUndo) {
+    checkpointUndo("ajout au groupe recap");
   }
 
   zones.forEach((zone) => {
@@ -773,16 +801,18 @@ function removeSelectedZoneFromTimingGroup() {
   if (!zones.length) {
     return;
   }
+  checkpointUndo("retrait du groupe d'apparition");
   zones.forEach((zone, index) => {
     removeZoneFromGroupsOfKind(zone.id, "timing", index === zones.length - 1);
   });
 }
 
 function removeSelectedZoneFromFocusGroup() {
-  const zones = getSelectedZones();
+  const zones = expandZonesToTimingGroups(getSelectedZones());
   if (!zones.length) {
     return;
   }
+  checkpointUndo("retrait du groupe focus");
   zones.forEach((zone, index) => {
     removeZoneFromGroupsOfKind(zone.id, "focus", index === zones.length - 1);
   });
@@ -793,12 +823,22 @@ function removeSelectedZoneFromRecapGroup() {
   if (!zones.length) {
     return;
   }
+  checkpointUndo("retrait du groupe recap");
   zones.forEach((zone, index) => {
     removeZoneFromGroupsOfKind(zone.id, "recap", index === zones.length - 1);
   });
 }
 
 function removeZoneFromGroup(zoneId, kind) {
+  checkpointUndo(`retrait du groupe ${getGroupKindLabel(kind)}`);
+  if (kind === "focus") {
+    const zone = state.zones.find((item) => item.id === zoneId);
+    const zones = zone ? expandZonesToTimingGroups([zone]) : [];
+    zones.forEach((item, index) => {
+      removeZoneFromGroupsOfKind(item.id, kind, index === zones.length - 1);
+    });
+    return;
+  }
   removeZoneFromGroupsOfKind(zoneId, kind, true);
 }
 
@@ -847,6 +887,7 @@ function deleteGroup(groupId) {
   if (!group) {
     return;
   }
+  checkpointUndo(`suppression du groupe ${getGroupKindLabel(group.kind)}`);
 
   group.zoneIds.forEach((zoneId) => {
     const zone = state.zones.find((item) => item.id === zoneId);
@@ -887,12 +928,18 @@ function reorderGroupMember(groupId, memberIndex, direction) {
   if (!group) {
     return;
   }
+  checkpointUndo("ordre du groupe d'apparition");
   const nextIndex = memberIndex + direction;
   if (nextIndex < 0 || nextIndex >= group.zoneIds.length) {
     return;
   }
   const [zoneId] = group.zoneIds.splice(memberIndex, 1);
   group.zoneIds.splice(nextIndex, 0, zoneId);
+  syncZoneOrderToTimingGroupMemberOrder(group);
+  drawAnnotatedPreview();
+  renderZones(state.zones);
+  renderAnimationStage();
+  renderZonesOrderPanel();
   renderGroupsPanel();
 }
 
@@ -901,6 +948,7 @@ function reorderRecapGroupMember(groupId, memberIndex, direction) {
   if (!group) {
     return;
   }
+  checkpointUndo("ordre du groupe recap");
   const nextIndex = memberIndex + direction;
   if (nextIndex < 0 || nextIndex >= group.zoneIds.length) {
     return;

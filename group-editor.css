@@ -5,6 +5,7 @@
 }
 
 .group-card {
+  min-width: 0;
   padding: 14px;
   border-radius: 18px;
   border: 1px solid rgba(27, 70, 120, 0.1);
@@ -21,7 +22,13 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
+  flex-wrap: wrap;
   gap: 12px;
+}
+
+.group-topline > :first-child,
+.group-member .member-left {
+  flex: 1 1 180px;
 }
 
 .group-topline {
@@ -48,7 +55,7 @@
 
 .group-controls {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(150px, 100%), 1fr));
   gap: 10px;
   margin-top: 12px;
 }
@@ -93,7 +100,7 @@
 
 .group-focus-controls {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(140px, 100%), 1fr));
   gap: 10px;
 }
 
@@ -138,7 +145,9 @@
 }
 
 .member-effect-select {
-  min-width: 190px;
+  flex: 1 1 190px;
+  min-width: 0;
+  max-width: 100%;
   padding: 9px 10px;
   border-radius: 12px;
 }
@@ -158,12 +167,31 @@
 
 .member-label {
   min-width: 0;
+  overflow-wrap: anywhere;
   font-size: 0.92rem;
 }
 
 .member-buttons {
   display: inline-flex;
+  flex: 0 0 auto;
   gap: 8px;
+}
+
+@media (max-width: 640px) {
+  .group-topline,
+  .group-member {
+    align-items: stretch;
+  }
+
+  .group-top-actions,
+  .member-buttons {
+    width: 100%;
+  }
+
+  .group-top-actions .mini-btn,
+  .member-buttons .mini-btn {
+    flex: 1;
+  }
 }
 
 .mini-btn {
