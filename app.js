@@ -4128,6 +4128,18 @@ function buildExportHtml(payload) {
         return "translate(" + x + "px, " + y + "px) scale(" + scale + ") rotate(" + rotate + "deg)";
       }
 
+      function getQualityLimitedScale(targetScale, boxes, maximumScale) {
+        const compositionScale = Math.max(0.62, Math.min(maximumScale, Number(targetScale) || 1));
+        const devicePixelRatio = Math.max(1, window.devicePixelRatio || 1);
+        const qualityLimits = boxes.map((box) => {
+          if (!(box.width > 0) || !(box.height > 0) || !(box.naturalWidth > 0) || !(box.naturalHeight > 0)) {
+            return null;
+          }
+          return Math.min(box.naturalWidth / box.width, box.naturalHeight / box.height) * 1.5 / devicePixelRatio;
+        }).filter((limit) => Number.isFinite(limit) && limit > 0);
+        return qualityLimits.length ? Math.min(compositionScale, ...qualityLimits) : compositionScale;
+      }
+
       function hiddenOffsetX(effect, offsetX) {
         if (effect === "fade-left") return -Math.abs(offsetX || 48);
         if (effect === "fade-right") return Math.abs(offsetX || 48);
@@ -4306,6 +4318,8 @@ function buildExportHtml(payload) {
           top: entry.element.offsetTop,
           width: entry.element.offsetWidth,
           height: entry.element.offsetHeight,
+          naturalWidth: entry.element.naturalWidth,
+          naturalHeight: entry.element.naturalHeight,
         }));
         if (!stageWidth || !stageHeight || boxes.some((box) => !box.width || !box.height)) {
           return { transform: buildTransform(0, 0, focusAppearance.scale, 0), origin: "center center" };
@@ -4322,7 +4336,7 @@ function buildExportHtml(payload) {
         const groupCenterX = bounds.left + groupWidth / 2;
         const groupCenterY = bounds.top + groupHeight / 2;
         const targetScale = Math.min((stageWidth * 0.82) / groupWidth, (stageHeight * 0.82) / groupHeight);
-        const scale = Math.max(0.62, Math.min(2.4, targetScale));
+        const scale = getQualityLimitedScale(targetScale, boxes, 2.4);
         return {
           transform: buildTransform(stageWidth / 2 - groupCenterX, stageHeight / 2 - groupCenterY, scale, 0),
           origin: (groupCenterX - zoneEntry.element.offsetLeft) + "px " + (groupCenterY - zoneEntry.element.offsetTop) + "px",
@@ -4355,7 +4369,12 @@ function buildExportHtml(payload) {
         const groupWidth = Math.max(1, bounds.right - bounds.left);
         const groupHeight = Math.max(1, bounds.bottom - bounds.top);
         const targetScale = Math.min((stageWidth * 0.9) / groupWidth, (stageHeight * 0.9) / groupHeight);
-        const scale = Math.max(0.62, targetScale);
+        const scale = getQualityLimitedScale(targetScale, recapEntries.map((entry) => ({
+          width: entry.element.offsetWidth,
+          height: entry.element.offsetHeight,
+          naturalWidth: entry.element.naturalWidth,
+          naturalHeight: entry.element.naturalHeight,
+        })), Infinity);
         const groupCenterX = bounds.left + groupWidth / 2;
         const groupCenterY = bounds.top + groupHeight / 2;
         return {
@@ -4755,6 +4774,8 @@ function createRuntimeController(stageElement, payload, options = {}) {
       top: focusEntry.element.offsetTop,
       width: focusEntry.element.offsetWidth,
       height: focusEntry.element.offsetHeight,
+      naturalWidth: focusEntry.element.naturalWidth,
+      naturalHeight: focusEntry.element.naturalHeight,
     }));
     if (!stageWidth || !stageHeight || boxes.some((box) => !box.width || !box.height)) {
       return { transform: buildTransform(0, 0, focusAppearance.scale, 0), origin: "center center" };
@@ -4792,7 +4813,14 @@ function createRuntimeController(stageElement, payload, options = {}) {
     const groupWidth = Math.max(1, bounds.right - bounds.left);
     const groupHeight = Math.max(1, bounds.bottom - bounds.top);
     const targetScale = Math.min((stageWidth * 0.9) / groupWidth, (stageHeight * 0.9) / groupHeight);
-    const scale = Math.max(0.62, targetScale);
+    const scale = AnimationCore.getQualityLimitedScale(targetScale, recapEntries.map((recapEntry) => ({
+      width: recapEntry.element.offsetWidth,
+      height: recapEntry.element.offsetHeight,
+      naturalWidth: recapEntry.element.naturalWidth,
+      naturalHeight: recapEntry.element.naturalHeight,
+    })), {
+      devicePixelRatio: window.devicePixelRatio,
+    });
     const groupCenterX = bounds.left + groupWidth / 2;
     const groupCenterY = bounds.top + groupHeight / 2;
     return {

@@ -1,11 +1,11 @@
-# Graph Report - decoupeinfographie-main  (2026-06-30)
+# Graph Report - decoupeinfographie-main  (2026-07-16)
 
 ## Corpus Check
-- 10 files · ~28,549 words
+- 10 files · ~28,869 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 416 nodes · 1028 edges · 18 communities (16 shown, 2 thin omitted)
+- 417 nodes · 1030 edges · 20 communities (18 shown, 2 thin omitted)
 - Extraction: 91% EXTRACTED · 9% INFERRED · 0% AMBIGUOUS · INFERRED: 92 edges (avg confidence: 0.8)
 - Token cost: 0 input · 0 output
 
@@ -23,10 +23,12 @@
 - [[_COMMUNITY_Community 10|Community 10]]
 - [[_COMMUNITY_Community 11|Community 11]]
 - [[_COMMUNITY_Community 12|Community 12]]
-- [[_COMMUNITY_Community 20|Community 20]]
+- [[_COMMUNITY_Community 13|Community 13]]
+- [[_COMMUNITY_Community 14|Community 14]]
+- [[_COMMUNITY_Community 15|Community 15]]
+- [[_COMMUNITY_Community 16|Community 16]]
 - [[_COMMUNITY_Community 21|Community 21]]
 - [[_COMMUNITY_Community 23|Community 23]]
-- [[_COMMUNITY_Community 24|Community 24]]
 - [[_COMMUNITY_Community 25|Community 25]]
 
 ## God Nodes (most connected - your core abstractions)
@@ -46,29 +48,29 @@
   group-editor.js → app.js
 - `undoLastAction()` --calls--> `renderGroupsPanel()`  [INFERRED]
   app.js → group-editor.js
-- `handlePreviewCanvasPointerUp()` --calls--> `renderGroupsPanel()`  [INFERRED]
-  app.js → group-editor.js
-- `createManualZone()` --calls--> `renderGroupsPanel()`  [INFERRED]
-  app.js → group-editor.js
-- `duplicateSelectedZone()` --calls--> `renderGroupsPanel()`  [INFERRED]
-  app.js → group-editor.js
+- `createNewFocusGroup()` --calls--> `setAnimationStatus()`  [INFERRED]
+  group-editor.js → app.js
+- `createNewRecapGroup()` --calls--> `setAnimationStatus()`  [INFERRED]
+  group-editor.js → app.js
+- `createNewTimingGroup()` --calls--> `setAnimationStatus()`  [INFERRED]
+  group-editor.js → app.js
 
 ## Import Cycles
 - None detected.
 
-## Communities (18 total, 2 thin omitted)
+## Communities (20 total, 2 thin omitted)
 
 ### Community 0 - "Community 0"
 Cohesion: 0.02
-Nodes (100): addZoneModeButton, animationStage, animationStageViewport, animationStatusText, applyStepSettingsButton, autoStepGapRange, autoStepGapValue, controlsPanel (+92 more)
+Nodes (107): addZoneModeButton, animationStage, animationStageViewport, animationStatusText, applyRectStyles(), applyStepSettingsButton, autoStepGapRange, autoStepGapValue (+99 more)
 
 ### Community 1 - "Community 1"
-Cohesion: 0.13
-Nodes (54): applyPresentationPreset(), applyRectStyles(), applyStepSettings(), createManualZone(), createSubdivisionParentSnapshot(), createZoneAsset(), deleteSelectedZones(), drawAnnotatedPreview() (+46 more)
+Cohesion: 0.21
+Nodes (44): applyPresentationPreset(), applyStepSettings(), createManualZone(), createZoneAsset(), deleteSelectedZones(), drawAnnotatedPreview(), duplicateSelectedZone(), getGroupsByKind() (+36 more)
 
 ### Community 2 - "Community 2"
-Cohesion: 0.19
-Nodes (15): applyDetectionSettings(), applyPreset(), clearUndoHistory(), cloneZonesForUndo(), createUndoSnapshot(), getUndoSnapshotSignature(), restoreProjectState(), sanitizeAnimationSettings() (+7 more)
+Cohesion: 0.16
+Nodes (15): applyDetectionSettings(), applyPreset(), clearUndoHistory(), cloneZonesForUndo(), createUndoSnapshot(), formatNumber(), getUndoSnapshotSignature(), serializeZoneForProject() (+7 more)
 
 ### Community 3 - "Community 3"
 Cohesion: 0.40
@@ -79,20 +81,20 @@ Cohesion: 0.11
 Nodes (29): boxesAreNear(), bridgeBinaryGaps(), bridgeMask(), buildForegroundMask(), clamp(), closeSmallGaps(), combineBoxes(), countMaskPixels() (+21 more)
 
 ### Community 5 - "Community 5"
-Cohesion: 0.12
-Nodes (24): analyzeZoneSubdivision(), boxesAreNear(), bridgeBinaryGaps(), bridgeMask(), buildForegroundMask(), chooseBestSubdivision(), closeSmallGaps(), combineBoxes() (+16 more)
+Cohesion: 0.14
+Nodes (18): analyzeZoneSubdivision(), boxesAreNear(), bridgeBinaryGaps(), bridgeMask(), chooseBestSubdivision(), combineBoxes(), detectComponentZones(), detectLayoutZones() (+10 more)
 
 ### Community 6 - "Community 6"
 Cohesion: 0.11
 Nodes (18): Detection, Double analyse locale, Editeur d'animation, Effets actuellement disponibles, Export HTML, Groupes d'apparition, Limites actuelles, Liste des zones (+10 more)
 
 ### Community 7 - "Community 7"
-Cohesion: 0.07
-Nodes (37): clamp(), computeResizedBox(), cursorForPreviewHandle(), drawPreviewDeleteAction(), drawPreviewResizeHandles(), drawRoundedRect(), findZoneAtCanvasPoint(), getCanvasPoint() (+29 more)
+Cohesion: 0.11
+Nodes (25): clamp(), computeResizedBox(), cursorForPreviewHandle(), drawPreviewDeleteAction(), drawRoundedRect(), findZoneAtCanvasPoint(), getCanvasPoint(), getFocusAppearanceForDepth() (+17 more)
 
 ### Community 8 - "Community 8"
-Cohesion: 0.12
-Nodes (21): buildExportHtml(), buildExportRecapGroups(), buildProjectPayload(), buildStepSchedule(), buildZipBlob(), countEnabledZones(), createRuntimeController(), createZipEndRecord() (+13 more)
+Cohesion: 0.11
+Nodes (22): buildExportHtml(), buildExportRecapGroups(), buildProjectPayload(), buildStepSchedule(), buildZipBlob(), countEnabledZones(), createRuntimeController(), createZipEndRecord() (+14 more)
 
 ### Community 9 - "Community 9"
 Cohesion: 0.25
@@ -100,27 +102,35 @@ Nodes (8): applyZonePreviewAppearance(), buildTransform(), getZoneVisualState(),
 
 ### Community 10 - "Community 10"
 Cohesion: 0.20
-Nodes (10): applyRoundZoneTransparency(), colorDistance(), detectVerticalSeparators(), estimateBackgroundColor(), extractLocalMask(), luminance(), median(), readPixel() (+2 more)
+Nodes (11): applyRoundZoneTransparency(), buildForegroundMask(), closeSmallGaps(), enrichLocalZoneGeometry(), enrichZoneGeometry(), estimateBackgroundColor(), extractLocalMask(), median() (+3 more)
 
 ### Community 11 - "Community 11"
-Cohesion: 0.40
-Nodes (6): chooseEvenlyDistributedSeparators(), countMaskPixelsInBox(), enrichZoneGeometry(), inferZoneShape(), sampleMaskDensity(), splitRegionIntoFixedColumns()
+Cohesion: 0.22
+Nodes (10): chooseEvenlyDistributedSeparators(), colorDistance(), countMaskPixelsInBox(), detectVerticalSeparatorBoxes(), detectVerticalSeparators(), inferZoneShape(), luminance(), sampleMaskDensity() (+2 more)
 
 ### Community 12 - "Community 12"
 Cohesion: 0.50
 Nodes (4): clearZoneOrderDropIndicator(), handleZoneOrderListDrop(), resetZoneOrderDragState(), updateZoneOrderDropIndicator()
 
-### Community 23 - "Community 23"
-Cohesion: 0.17
-Nodes (10): buildTransform(), getZoneVisualState(), hiddenBlur(), hiddenOffsetX(), hiddenOffsetY(), hiddenRotation(), hiddenScale(), AnimationCore (+2 more)
+### Community 13 - "Community 13"
+Cohesion: 0.21
+Nodes (13): getEffectiveFocusGroupId(), getEffectOptions(), getTimingGroupForZone(), getZoneFocusGroupId(), getZoneRecapGroupId(), getZoneRevealAtEnd(), getZoneTimingGroupId(), isKnownEffect() (+5 more)
 
-### Community 24 - "Community 24"
+### Community 14 - "Community 14"
 Cohesion: 0.22
 Nodes (8): description, devDependencies, name, private, scripts, check, test, version
 
+### Community 15 - "Community 15"
+Cohesion: 0.67
+Nodes (3): drawPreviewResizeHandles(), getPreviewHandleRects(), getPreviewInteractionSize()
+
+### Community 23 - "Community 23"
+Cohesion: 0.17
+Nodes (12): buildTransform(), getGroupFocusLayout(), getQualityLimitedScale(), getZoneVisualState(), hiddenBlur(), hiddenOffsetX(), hiddenOffsetY(), hiddenRotation() (+4 more)
+
 ### Community 25 - "Community 25"
-Cohesion: 0.18
-Nodes (27): checkpointUndo(), expandZonesToTimingGroups(), getSelectedZones(), makeId(), removeZoneFromAnyGroup(), setAnimationStatus(), toggleZoneFocusMode(), assignSelectionToFocusGroup() (+19 more)
+Cohesion: 0.19
+Nodes (26): checkpointUndo(), expandZonesToTimingGroups(), getSelectedZones(), makeId(), removeZoneFromAnyGroup(), toggleZoneFocusMode(), assignSelectionToFocusGroup(), assignSelectionToRecapGroup() (+18 more)
 
 ## Knowledge Gaps
 - **131 isolated node(s):** `FORMATS`, `presets`, `state`, `imageInput`, `projectInput` (+126 more)
@@ -130,10 +140,12 @@ Nodes (27): checkpointUndo(), expandZonesToTimingGroups(), getSelectedZones(), m
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
-- **Why does `checkpointUndo()` connect `Community 25` to `Community 0`, `Community 1`, `Community 2`, `Community 5`, `Community 7`?**
+- **Why does `checkpointUndo()` connect `Community 25` to `Community 0`, `Community 1`, `Community 2`, `Community 13`?**
   _High betweenness centrality (0.019) - this node is a cross-community bridge._
-- **Why does `renderGroupsPanel()` connect `Community 25` to `Community 1`, `Community 2`, `Community 5`?**
+- **Why does `renderGroupsPanel()` connect `Community 25` to `Community 1`, `Community 2`?**
   _High betweenness centrality (0.019) - this node is a cross-community bridge._
+- **Why does `sanitizeGroupPresentation()` connect `Community 7` to `Community 13`?**
+  _High betweenness centrality (0.013) - this node is a cross-community bridge._
 - **Are the 8 inferred relationships involving `updateAnimationControlsState()` (e.g. with `assignSelectionToFocusGroup()` and `assignSelectionToRecapGroup()`) actually correct?**
   _`updateAnimationControlsState()` has 8 INFERRED edges - model-reasoned connections that need verification._
 - **Are the 13 inferred relationships involving `checkpointUndo()` (e.g. with `assignSelectionToFocusGroup()` and `assignSelectionToRecapGroup()`) actually correct?**
@@ -142,5 +154,3 @@ _Questions this graph is uniquely positioned to answer:_
   _`renderGroupsPanel()` has 20 INFERRED edges - model-reasoned connections that need verification._
 - **Are the 6 inferred relationships involving `renderAnimationStage()` (e.g. with `assignSelectionToFocusGroup()` and `assignSelectionToRecapGroup()`) actually correct?**
   _`renderAnimationStage()` has 6 INFERRED edges - model-reasoned connections that need verification._
-- **Are the 5 inferred relationships involving `updateInspector()` (e.g. with `assignSelectionToFocusGroup()` and `assignSelectionToRecapGroup()`) actually correct?**
-  _`updateInspector()` has 5 INFERRED edges - model-reasoned connections that need verification._

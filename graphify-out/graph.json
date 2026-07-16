@@ -84,10 +84,20 @@
       "norm_label": "buildtransform()"
     },
     {
-      "label": "getGroupFocusLayout()",
+      "label": "getQualityLimitedScale()",
       "file_type": "code",
       "source_file": "animation-core.js",
       "source_location": "L71",
+      "_origin": "ast",
+      "id": "animation_core_getqualitylimitedscale",
+      "community": 23,
+      "norm_label": "getqualitylimitedscale()"
+    },
+    {
+      "label": "getGroupFocusLayout()",
+      "file_type": "code",
+      "source_file": "animation-core.js",
+      "source_location": "L93",
       "_origin": "ast",
       "id": "animation_core_getgroupfocuslayout",
       "community": 23,
@@ -97,7 +107,7 @@
       "label": "resolveTimingGroupDelay()",
       "file_type": "code",
       "source_file": "animation-core.js",
-      "source_location": "L107",
+      "source_location": "L132",
       "_origin": "ast",
       "id": "animation_core_resolvetiminggroupdelay",
       "community": 23,
@@ -107,7 +117,7 @@
       "label": "mergeGroupOrder()",
       "file_type": "code",
       "source_file": "animation-core.js",
-      "source_location": "L115",
+      "source_location": "L140",
       "_origin": "ast",
       "id": "animation_core_mergegrouporder",
       "community": 23,
@@ -117,7 +127,7 @@
       "label": "buildStepSchedule()",
       "file_type": "code",
       "source_file": "animation-core.js",
-      "source_location": "L131",
+      "source_location": "L156",
       "_origin": "ast",
       "id": "animation_core_buildstepschedule",
       "community": 23,
@@ -1210,7 +1220,7 @@
       "source_location": "L359",
       "_origin": "ast",
       "id": "app_getzonetiminggroupid",
-      "community": 7,
+      "community": 13,
       "norm_label": "getzonetiminggroupid()"
     },
     {
@@ -1220,7 +1230,7 @@
       "source_location": "L369",
       "_origin": "ast",
       "id": "app_getzonefocusgroupid",
-      "community": 7,
+      "community": 13,
       "norm_label": "getzonefocusgroupid()"
     },
     {
@@ -1230,7 +1240,7 @@
       "source_location": "L373",
       "_origin": "ast",
       "id": "app_getzonerecapgroupid",
-      "community": 1,
+      "community": 13,
       "norm_label": "getzonerecapgroupid()"
     },
     {
@@ -1240,7 +1250,7 @@
       "source_location": "L377",
       "_origin": "ast",
       "id": "app_getzonerevealatend",
-      "community": 7,
+      "community": 13,
       "norm_label": "getzonerevealatend()"
     },
     {
@@ -1270,7 +1280,7 @@
       "source_location": "L389",
       "_origin": "ast",
       "id": "app_gettiminggroupforzone",
-      "community": 7,
+      "community": 13,
       "norm_label": "gettiminggroupforzone()"
     },
     {
@@ -1290,7 +1300,7 @@
       "source_location": "L403",
       "_origin": "ast",
       "id": "app_geteffectivefocusgroupid",
-      "community": 7,
+      "community": 13,
       "norm_label": "geteffectivefocusgroupid()"
     },
     {
@@ -1380,7 +1390,7 @@
       "source_location": "L924",
       "_origin": "ast",
       "id": "app_updatedetectiondiagnostics",
-      "community": 5,
+      "community": 2,
       "norm_label": "updatedetectiondiagnostics()"
     },
     {
@@ -1390,7 +1400,7 @@
       "source_location": "L940",
       "_origin": "ast",
       "id": "app_setanimationstatus",
-      "community": 25,
+      "community": 1,
       "norm_label": "setanimationstatus()"
     },
     {
@@ -1400,7 +1410,7 @@
       "source_location": "L944",
       "_origin": "ast",
       "id": "app_drawsourceimage",
-      "community": 1,
+      "community": 0,
       "norm_label": "drawsourceimage()"
     },
     {
@@ -1420,7 +1430,7 @@
       "source_location": "L1015",
       "_origin": "ast",
       "id": "app_drawpreviewresizehandles",
-      "community": 7,
+      "community": 15,
       "norm_label": "drawpreviewresizehandles()"
     },
     {
@@ -1430,7 +1440,7 @@
       "source_location": "L1028",
       "_origin": "ast",
       "id": "app_drawdraftpreviewbox",
-      "community": 1,
+      "community": 0,
       "norm_label": "drawdraftpreviewbox()"
     },
     {
@@ -1540,7 +1550,7 @@
       "source_location": "L1346",
       "_origin": "ast",
       "id": "app_getpreviewinteractionsize",
-      "community": 7,
+      "community": 15,
       "norm_label": "getpreviewinteractionsize()"
     },
     {
@@ -1550,7 +1560,7 @@
       "source_location": "L1352",
       "_origin": "ast",
       "id": "app_getpreviewhandlerects",
-      "community": 7,
+      "community": 15,
       "norm_label": "getpreviewhandlerects()"
     },
     {
@@ -1650,7 +1660,7 @@
       "source_location": "L1506",
       "_origin": "ast",
       "id": "app_resetprevieweditstate",
-      "community": 1,
+      "community": 7,
       "norm_label": "resetprevieweditstate()"
     },
     {
@@ -1660,7 +1670,7 @@
       "source_location": "L1521",
       "_origin": "ast",
       "id": "app_refreshzoneasset",
-      "community": 1,
+      "community": 10,
       "norm_label": "refreshzoneasset()"
     },
     {
@@ -1720,7 +1730,7 @@
       "source_location": "L1707",
       "_origin": "ast",
       "id": "app_rundetection",
-      "community": 5,
+      "community": 1,
       "norm_label": "rundetection()"
     },
     {
@@ -1760,7 +1770,7 @@
       "source_location": "L1999",
       "_origin": "ast",
       "id": "app_togglezonedeferredreveal",
-      "community": 7,
+      "community": 13,
       "norm_label": "togglezonedeferredreveal()"
     },
     {
@@ -1900,7 +1910,7 @@
       "source_location": "L2448",
       "_origin": "ast",
       "id": "app_promptzoneorderchange",
-      "community": 1,
+      "community": 7,
       "norm_label": "promptzoneorderchange()"
     },
     {
@@ -2100,7 +2110,7 @@
       "source_location": "L3002",
       "_origin": "ast",
       "id": "app_createsubdivisionparentsnapshot",
-      "community": 1,
+      "community": 0,
       "norm_label": "createsubdivisionparentsnapshot()"
     },
     {
@@ -2130,7 +2140,7 @@
       "source_location": "L3126",
       "_origin": "ast",
       "id": "app_detectverticalseparatorboxes",
-      "community": 5,
+      "community": 11,
       "norm_label": "detectverticalseparatorboxes()"
     },
     {
@@ -2140,7 +2150,7 @@
       "source_location": "L3163",
       "_origin": "ast",
       "id": "app_detectverticalseparators",
-      "community": 10,
+      "community": 11,
       "norm_label": "detectverticalseparators()"
     },
     {
@@ -2160,7 +2170,7 @@
       "source_location": "L3282",
       "_origin": "ast",
       "id": "app_enrichzonegeometry",
-      "community": 11,
+      "community": 10,
       "norm_label": "enrichzonegeometry()"
     },
     {
@@ -2170,7 +2180,7 @@
       "source_location": "L3291",
       "_origin": "ast",
       "id": "app_enrichlocalzonegeometry",
-      "community": 1,
+      "community": 10,
       "norm_label": "enrichlocalzonegeometry()"
     },
     {
@@ -2430,7 +2440,7 @@
       "source_location": "L3697",
       "_origin": "ast",
       "id": "app_restoreprojectstate",
-      "community": 2,
+      "community": 1,
       "norm_label": "restoreprojectstate()"
     },
     {
@@ -2460,7 +2470,7 @@
       "source_location": "L3810",
       "_origin": "ast",
       "id": "app_sanitizeanimationsettings",
-      "community": 2,
+      "community": 7,
       "norm_label": "sanitizeanimationsettings()"
     },
     {
@@ -2470,7 +2480,7 @@
       "source_location": "L3824",
       "_origin": "ast",
       "id": "app_sanitizestepeditor",
-      "community": 7,
+      "community": 13,
       "norm_label": "sanitizestepeditor()"
     },
     {
@@ -2480,7 +2490,7 @@
       "source_location": "L3833",
       "_origin": "ast",
       "id": "app_normalizeprojectzone",
-      "community": 7,
+      "community": 13,
       "norm_label": "normalizeprojectzone()"
     },
     {
@@ -2530,7 +2540,7 @@
       "source_location": "L3932",
       "_origin": "ast",
       "id": "app_resolvezoneanimationforexport",
-      "community": 7,
+      "community": 13,
       "norm_label": "resolvezoneanimationforexport()"
     },
     {
@@ -2540,7 +2550,7 @@
       "source_location": "L3977",
       "_origin": "ast",
       "id": "app_resolvezonefocuspresentation",
-      "community": 7,
+      "community": 13,
       "norm_label": "resolvezonefocuspresentation()"
     },
     {
@@ -2577,7 +2587,7 @@
       "label": "createRuntimeController()",
       "file_type": "code",
       "source_file": "app.js",
-      "source_location": "L4648",
+      "source_location": "L4667",
       "_origin": "ast",
       "id": "app_createruntimecontroller",
       "community": 8,
@@ -2587,7 +2597,7 @@
       "label": "getSelectedZone()",
       "file_type": "code",
       "source_file": "app.js",
-      "source_location": "L5084",
+      "source_location": "L5112",
       "_origin": "ast",
       "id": "app_getselectedzone",
       "community": 1,
@@ -2597,7 +2607,7 @@
       "label": "getSelectedZones()",
       "file_type": "code",
       "source_file": "app.js",
-      "source_location": "L5088",
+      "source_location": "L5116",
       "_origin": "ast",
       "id": "app_getselectedzones",
       "community": 25,
@@ -2607,7 +2617,7 @@
       "label": "getEnabledZonesSorted()",
       "file_type": "code",
       "source_file": "app.js",
-      "source_location": "L5092",
+      "source_location": "L5120",
       "_origin": "ast",
       "id": "app_getenabledzonessorted",
       "community": 8,
@@ -2617,7 +2627,7 @@
       "label": "countEnabledZones()",
       "file_type": "code",
       "source_file": "app.js",
-      "source_location": "L5103",
+      "source_location": "L5131",
       "_origin": "ast",
       "id": "app_countenabledzones",
       "community": 8,
@@ -2627,17 +2637,17 @@
       "label": "getContainRect()",
       "file_type": "code",
       "source_file": "app.js",
-      "source_location": "L5107",
+      "source_location": "L5135",
       "_origin": "ast",
       "id": "app_getcontainrect",
-      "community": 1,
+      "community": 8,
       "norm_label": "getcontainrect()"
     },
     {
       "label": "getZonePlacement()",
       "file_type": "code",
       "source_file": "app.js",
-      "source_location": "L5132",
+      "source_location": "L5160",
       "_origin": "ast",
       "id": "app_getzoneplacement",
       "community": 3,
@@ -2647,17 +2657,17 @@
       "label": "applyRectStyles()",
       "file_type": "code",
       "source_file": "app.js",
-      "source_location": "L5146",
+      "source_location": "L5174",
       "_origin": "ast",
       "id": "app_applyrectstyles",
-      "community": 1,
+      "community": 0,
       "norm_label": "applyrectstyles()"
     },
     {
       "label": "detectComponentZones()",
       "file_type": "code",
       "source_file": "app.js",
-      "source_location": "L5161",
+      "source_location": "L5189",
       "_origin": "ast",
       "id": "app_detectcomponentzones",
       "community": 5,
@@ -2667,7 +2677,7 @@
       "label": "detectLayoutZones()",
       "file_type": "code",
       "source_file": "app.js",
-      "source_location": "L5167",
+      "source_location": "L5195",
       "_origin": "ast",
       "id": "app_detectlayoutzones",
       "community": 5,
@@ -2677,7 +2687,7 @@
       "label": "estimateBackgroundColor()",
       "file_type": "code",
       "source_file": "app.js",
-      "source_location": "L5260",
+      "source_location": "L5288",
       "_origin": "ast",
       "id": "app_estimatebackgroundcolor",
       "community": 10,
@@ -2687,27 +2697,27 @@
       "label": "buildForegroundMask()",
       "file_type": "code",
       "source_file": "app.js",
-      "source_location": "L5286",
+      "source_location": "L5314",
       "_origin": "ast",
       "id": "app_buildforegroundmask",
-      "community": 5,
+      "community": 10,
       "norm_label": "buildforegroundmask()"
     },
     {
       "label": "closeSmallGaps()",
       "file_type": "code",
       "source_file": "app.js",
-      "source_location": "L5311",
+      "source_location": "L5339",
       "_origin": "ast",
       "id": "app_closesmallgaps",
-      "community": 5,
+      "community": 10,
       "norm_label": "closesmallgaps()"
     },
     {
       "label": "bridgeMask()",
       "file_type": "code",
       "source_file": "app.js",
-      "source_location": "L5340",
+      "source_location": "L5368",
       "_origin": "ast",
       "id": "app_bridgemask",
       "community": 5,
@@ -2717,7 +2727,7 @@
       "label": "fillLineGaps()",
       "file_type": "code",
       "source_file": "app.js",
-      "source_location": "L5354",
+      "source_location": "L5382",
       "_origin": "ast",
       "id": "app_filllinegaps",
       "community": 5,
@@ -2727,7 +2737,7 @@
       "label": "projectMaskRows()",
       "file_type": "code",
       "source_file": "app.js",
-      "source_location": "L5393",
+      "source_location": "L5421",
       "_origin": "ast",
       "id": "app_projectmaskrows",
       "community": 5,
@@ -2737,7 +2747,7 @@
       "label": "projectMaskColumns()",
       "file_type": "code",
       "source_file": "app.js",
-      "source_location": "L5405",
+      "source_location": "L5433",
       "_origin": "ast",
       "id": "app_projectmaskcolumns",
       "community": 5,
@@ -2747,7 +2757,7 @@
       "label": "findBands()",
       "file_type": "code",
       "source_file": "app.js",
-      "source_location": "L5417",
+      "source_location": "L5445",
       "_origin": "ast",
       "id": "app_findbands",
       "community": 5,
@@ -2757,7 +2767,7 @@
       "label": "bridgeBinaryGaps()",
       "file_type": "code",
       "source_file": "app.js",
-      "source_location": "L5443",
+      "source_location": "L5471",
       "_origin": "ast",
       "id": "app_bridgebinarygaps",
       "community": 5,
@@ -2767,7 +2777,7 @@
       "label": "expandBandsToMidpoints()",
       "file_type": "code",
       "source_file": "app.js",
-      "source_location": "L5462",
+      "source_location": "L5490",
       "_origin": "ast",
       "id": "app_expandbandstomidpoints",
       "community": 5,
@@ -2777,7 +2787,7 @@
       "label": "shouldSplitRowIntoColumns()",
       "file_type": "code",
       "source_file": "app.js",
-      "source_location": "L5476",
+      "source_location": "L5504",
       "_origin": "ast",
       "id": "app_shouldsplitrowintocolumns",
       "community": 10,
@@ -2787,7 +2797,7 @@
       "label": "countMaskPixelsInBox()",
       "file_type": "code",
       "source_file": "app.js",
-      "source_location": "L5489",
+      "source_location": "L5517",
       "_origin": "ast",
       "id": "app_countmaskpixelsinbox",
       "community": 11,
@@ -2797,7 +2807,7 @@
       "label": "findConnectedComponents()",
       "file_type": "code",
       "source_file": "app.js",
-      "source_location": "L5499",
+      "source_location": "L5527",
       "_origin": "ast",
       "id": "app_findconnectedcomponents",
       "community": 5,
@@ -2807,7 +2817,7 @@
       "label": "mergeNearbyBoxes()",
       "file_type": "code",
       "source_file": "app.js",
-      "source_location": "L5576",
+      "source_location": "L5604",
       "_origin": "ast",
       "id": "app_mergenearbyboxes",
       "community": 5,
@@ -2817,7 +2827,7 @@
       "label": "boxesAreNear()",
       "file_type": "code",
       "source_file": "app.js",
-      "source_location": "L5606",
+      "source_location": "L5634",
       "_origin": "ast",
       "id": "app_boxesarenear",
       "community": 5,
@@ -2827,7 +2837,7 @@
       "label": "combineBoxes()",
       "file_type": "code",
       "source_file": "app.js",
-      "source_location": "L5612",
+      "source_location": "L5640",
       "_origin": "ast",
       "id": "app_combineboxes",
       "community": 5,
@@ -2837,7 +2847,7 @@
       "label": "padBox()",
       "file_type": "code",
       "source_file": "app.js",
-      "source_location": "L5627",
+      "source_location": "L5655",
       "_origin": "ast",
       "id": "app_padbox",
       "community": 0,
@@ -2847,7 +2857,7 @@
       "label": "suppressContainedBoxes()",
       "file_type": "code",
       "source_file": "app.js",
-      "source_location": "L5642",
+      "source_location": "L5670",
       "_origin": "ast",
       "id": "app_suppresscontainedboxes",
       "community": 5,
@@ -2857,7 +2867,7 @@
       "label": "readPixel()",
       "file_type": "code",
       "source_file": "app.js",
-      "source_location": "L5666",
+      "source_location": "L5694",
       "_origin": "ast",
       "id": "app_readpixel",
       "community": 10,
@@ -2867,37 +2877,37 @@
       "label": "colorDistance()",
       "file_type": "code",
       "source_file": "app.js",
-      "source_location": "L5675",
+      "source_location": "L5703",
       "_origin": "ast",
       "id": "app_colordistance",
-      "community": 10,
+      "community": 11,
       "norm_label": "colordistance()"
     },
     {
       "label": "luminance()",
       "file_type": "code",
       "source_file": "app.js",
-      "source_location": "L5679",
+      "source_location": "L5707",
       "_origin": "ast",
       "id": "app_luminance",
-      "community": 10,
+      "community": 11,
       "norm_label": "luminance()"
     },
     {
       "label": "smoothNumericSeries()",
       "file_type": "code",
       "source_file": "app.js",
-      "source_location": "L5683",
+      "source_location": "L5711",
       "_origin": "ast",
       "id": "app_smoothnumericseries",
-      "community": 10,
+      "community": 11,
       "norm_label": "smoothnumericseries()"
     },
     {
       "label": "median()",
       "file_type": "code",
       "source_file": "app.js",
-      "source_location": "L5701",
+      "source_location": "L5729",
       "_origin": "ast",
       "id": "app_median",
       "community": 10,
@@ -2907,7 +2917,7 @@
       "label": "loadImageFromFile()",
       "file_type": "code",
       "source_file": "app.js",
-      "source_location": "L5709",
+      "source_location": "L5737",
       "_origin": "ast",
       "id": "app_loadimagefromfile",
       "community": 0,
@@ -2917,7 +2927,7 @@
       "label": "loadImageFromDataUrl()",
       "file_type": "code",
       "source_file": "app.js",
-      "source_location": "L5727",
+      "source_location": "L5755",
       "_origin": "ast",
       "id": "app_loadimagefromdataurl",
       "community": 21,
@@ -2927,7 +2937,7 @@
       "label": "getSourceImageDataUrl()",
       "file_type": "code",
       "source_file": "app.js",
-      "source_location": "L5738",
+      "source_location": "L5766",
       "_origin": "ast",
       "id": "app_getsourceimagedataurl",
       "community": 8,
@@ -2937,7 +2947,7 @@
       "label": "triggerDownload()",
       "file_type": "code",
       "source_file": "app.js",
-      "source_location": "L5751",
+      "source_location": "L5779",
       "_origin": "ast",
       "id": "app_triggerdownload",
       "community": 8,
@@ -2947,7 +2957,7 @@
       "label": "buildZipBlob()",
       "file_type": "code",
       "source_file": "app.js",
-      "source_location": "L5762",
+      "source_location": "L5790",
       "_origin": "ast",
       "id": "app_buildzipblob",
       "community": 8,
@@ -2957,7 +2967,7 @@
       "label": "createZipLocalHeader()",
       "file_type": "code",
       "source_file": "app.js",
-      "source_location": "L5782",
+      "source_location": "L5810",
       "_origin": "ast",
       "id": "app_createziplocalheader",
       "community": 0,
@@ -2967,7 +2977,7 @@
       "label": "createZipCentralHeader()",
       "file_type": "code",
       "source_file": "app.js",
-      "source_location": "L5800",
+      "source_location": "L5828",
       "_origin": "ast",
       "id": "app_createzipcentralheader",
       "community": 0,
@@ -2977,7 +2987,7 @@
       "label": "createZipEndRecord()",
       "file_type": "code",
       "source_file": "app.js",
-      "source_location": "L5824",
+      "source_location": "L5852",
       "_origin": "ast",
       "id": "app_createzipendrecord",
       "community": 8,
@@ -2987,7 +2997,7 @@
       "label": "bytesFromDataUrl()",
       "file_type": "code",
       "source_file": "app.js",
-      "source_location": "L5838",
+      "source_location": "L5866",
       "_origin": "ast",
       "id": "app_bytesfromdataurl",
       "community": 0,
@@ -2997,7 +3007,7 @@
       "label": "encodeText()",
       "file_type": "code",
       "source_file": "app.js",
-      "source_location": "L5848",
+      "source_location": "L5876",
       "_origin": "ast",
       "id": "app_encodetext",
       "community": 8,
@@ -3007,7 +3017,7 @@
       "label": "sanitizeZipPath()",
       "file_type": "code",
       "source_file": "app.js",
-      "source_location": "L5852",
+      "source_location": "L5880",
       "_origin": "ast",
       "id": "app_sanitizezippath",
       "community": 0,
@@ -3017,7 +3027,7 @@
       "label": "crc32()",
       "file_type": "code",
       "source_file": "app.js",
-      "source_location": "L5861",
+      "source_location": "L5889",
       "_origin": "ast",
       "id": "app_crc32",
       "community": 0,
@@ -3027,17 +3037,17 @@
       "label": "formatNumber()",
       "file_type": "code",
       "source_file": "app.js",
-      "source_location": "L5872",
+      "source_location": "L5900",
       "_origin": "ast",
       "id": "app_formatnumber",
-      "community": 5,
+      "community": 2,
       "norm_label": "formatnumber()"
     },
     {
       "label": "clamp()",
       "file_type": "code",
       "source_file": "app.js",
-      "source_location": "L5876",
+      "source_location": "L5904",
       "_origin": "ast",
       "id": "app_clamp",
       "community": 7,
@@ -3047,7 +3057,7 @@
       "label": "delay()",
       "file_type": "code",
       "source_file": "app.js",
-      "source_location": "L5880",
+      "source_location": "L5908",
       "_origin": "ast",
       "id": "app_delay",
       "community": 0,
@@ -3057,17 +3067,17 @@
       "label": "isKnownEffect()",
       "file_type": "code",
       "source_file": "app.js",
-      "source_location": "L5886",
+      "source_location": "L5914",
       "_origin": "ast",
       "id": "app_isknowneffect",
-      "community": 7,
+      "community": 13,
       "norm_label": "isknowneffect()"
     },
     {
       "label": "labelForEffect()",
       "file_type": "code",
       "source_file": "app.js",
-      "source_location": "L5890",
+      "source_location": "L5918",
       "_origin": "ast",
       "id": "app_labelforeffect",
       "community": 1,
@@ -3077,17 +3087,17 @@
       "label": "getEffectOptions()",
       "file_type": "code",
       "source_file": "app.js",
-      "source_location": "L5908",
+      "source_location": "L5936",
       "_origin": "ast",
       "id": "app_geteffectoptions",
-      "community": 7,
+      "community": 13,
       "norm_label": "geteffectoptions()"
     },
     {
       "label": "getZonesForStep()",
       "file_type": "code",
       "source_file": "app.js",
-      "source_location": "L5925",
+      "source_location": "L5953",
       "_origin": "ast",
       "id": "app_getzonesforstep",
       "community": 1,
@@ -3097,17 +3107,17 @@
       "label": "inferStepStagger()",
       "file_type": "code",
       "source_file": "app.js",
-      "source_location": "L5929",
+      "source_location": "L5957",
       "_origin": "ast",
       "id": "app_inferstepstagger",
-      "community": 1,
+      "community": 0,
       "norm_label": "inferstepstagger()"
     },
     {
       "label": "getEffectDefaults()",
       "file_type": "code",
       "source_file": "app.js",
-      "source_location": "L5936",
+      "source_location": "L5964",
       "_origin": "ast",
       "id": "app_geteffectdefaults",
       "community": 3,
@@ -3117,7 +3127,7 @@
       "label": "labelForStartTrigger()",
       "file_type": "code",
       "source_file": "app.js",
-      "source_location": "L5954",
+      "source_location": "L5982",
       "_origin": "ast",
       "id": "app_labelforstarttrigger",
       "community": 8,
@@ -3127,27 +3137,27 @@
       "label": "labelForStepMode()",
       "file_type": "code",
       "source_file": "app.js",
-      "source_location": "L5963",
+      "source_location": "L5991",
       "_origin": "ast",
       "id": "app_labelforstepmode",
-      "community": 1,
+      "community": 0,
       "norm_label": "labelforstepmode()"
     },
     {
       "label": "labelForPresentationPreset()",
       "file_type": "code",
       "source_file": "app.js",
-      "source_location": "L5973",
+      "source_location": "L6001",
       "_origin": "ast",
       "id": "app_labelforpresentationpreset",
-      "community": 1,
+      "community": 0,
       "norm_label": "labelforpresentationpreset()"
     },
     {
       "label": "makeId()",
       "file_type": "code",
       "source_file": "app.js",
-      "source_location": "L5983",
+      "source_location": "L6011",
       "_origin": "ast",
       "id": "app_makeid",
       "community": 25,
@@ -3157,7 +3167,7 @@
       "label": "escapeHtml()",
       "file_type": "code",
       "source_file": "app.js",
-      "source_location": "L5990",
+      "source_location": "L6018",
       "_origin": "ast",
       "id": "app_escapehtml",
       "community": 8,
@@ -3779,8 +3789,8 @@
       "source_file": "package.json",
       "source_location": "L1",
       "_origin": "ast",
-      "id": "package",
-      "community": 24,
+      "id": "home_majorel_documents_mes_appli_html_decoupezoneimage_package_json",
+      "community": 14,
       "norm_label": "package.json"
     },
     {
@@ -3789,8 +3799,8 @@
       "source_file": "package.json",
       "source_location": "L2",
       "_origin": "ast",
-      "id": "package_name",
-      "community": 24,
+      "id": "decoupezoneimage_package_name",
+      "community": 14,
       "norm_label": "name"
     },
     {
@@ -3799,8 +3809,8 @@
       "source_file": "package.json",
       "source_location": "L3",
       "_origin": "ast",
-      "id": "package_version",
-      "community": 24,
+      "id": "decoupezoneimage_package_version",
+      "community": 14,
       "norm_label": "version"
     },
     {
@@ -3809,8 +3819,8 @@
       "source_file": "package.json",
       "source_location": "L4",
       "_origin": "ast",
-      "id": "package_private",
-      "community": 24,
+      "id": "decoupezoneimage_package_private",
+      "community": 14,
       "norm_label": "private"
     },
     {
@@ -3819,8 +3829,8 @@
       "source_file": "package.json",
       "source_location": "L5",
       "_origin": "ast",
-      "id": "package_description",
-      "community": 24,
+      "id": "decoupezoneimage_package_description",
+      "community": 14,
       "norm_label": "description"
     },
     {
@@ -3829,8 +3839,8 @@
       "source_file": "package.json",
       "source_location": "L6",
       "_origin": "ast",
-      "id": "package_scripts",
-      "community": 24,
+      "id": "decoupezoneimage_package_scripts",
+      "community": 14,
       "norm_label": "scripts"
     },
     {
@@ -3839,8 +3849,8 @@
       "source_file": "package.json",
       "source_location": "L7",
       "_origin": "ast",
-      "id": "package_scripts_test",
-      "community": 24,
+      "id": "decoupezoneimage_package_scripts_test",
+      "community": 14,
       "norm_label": "test"
     },
     {
@@ -3849,8 +3859,8 @@
       "source_file": "package.json",
       "source_location": "L8",
       "_origin": "ast",
-      "id": "package_scripts_check",
-      "community": 24,
+      "id": "decoupezoneimage_package_scripts_check",
+      "community": 14,
       "norm_label": "check"
     },
     {
@@ -3859,8 +3869,8 @@
       "source_file": "package.json",
       "source_location": "L10",
       "_origin": "ast",
-      "id": "package_devdependencies",
-      "community": 24,
+      "id": "decoupezoneimage_package_devdependencies",
+      "community": 14,
       "norm_label": "devdependencies"
     },
     {
@@ -3959,8 +3969,8 @@
       "source_file": "AGENTS.md",
       "source_location": "L1",
       "_origin": "ast",
-      "id": "agents",
-      "community": 20,
+      "id": "home_majorel_documents_mes_appli_html_decoupezoneimage_agents_md",
+      "community": 16,
       "norm_label": "agents.md"
     },
     {
@@ -3969,8 +3979,8 @@
       "source_file": "AGENTS.md",
       "source_location": "L1",
       "_origin": "ast",
-      "id": "agents_graphify",
-      "community": 20,
+      "id": "decoupezoneimage_agents_graphify",
+      "community": 16,
       "norm_label": "graphify"
     },
     {
@@ -4199,6 +4209,16 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "animation-core.js",
+      "source_location": "L71",
+      "weight": 1.0,
+      "source": "animation_core",
+      "target": "animation_core_getqualitylimitedscale",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "animation-core.js",
       "source_location": "L4",
       "weight": 1.0,
       "confidence_score": 1.0,
@@ -4351,6 +4371,17 @@
       "confidence_score": 1.0,
       "source": "animation_core_getzonevisualstate",
       "target": "animation_core_hiddenscale"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "animation-core.js",
+      "source_location": "L119",
+      "weight": 1.0,
+      "source": "animation_core_getgroupfocuslayout",
+      "target": "animation_core_getqualitylimitedscale",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -4658,9 +4689,9 @@
       "source_file": "app.js",
       "source_location": "L270",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "app",
-      "target": "app_checkpointundo",
-      "confidence_score": 1.0
+      "target": "app_checkpointundo"
     },
     {
       "relation": "contains",
@@ -4698,9 +4729,9 @@
       "source_file": "app.js",
       "source_location": "L292",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "app",
-      "target": "app_clearundohistory",
-      "confidence_score": 1.0
+      "target": "app_clearundohistory"
     },
     {
       "relation": "contains",
@@ -4718,9 +4749,9 @@
       "source_file": "app.js",
       "source_location": "L228",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "app",
-      "target": "app_clonezonesforundo",
-      "confidence_score": 1.0
+      "target": "app_clonezonesforundo"
     },
     {
       "relation": "contains",
@@ -4868,9 +4899,9 @@
       "source_file": "app.js",
       "source_location": "L237",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "app",
-      "target": "app_createundosnapshot",
-      "confidence_score": 1.0
+      "target": "app_createundosnapshot"
     },
     {
       "relation": "contains",
@@ -5558,9 +5589,9 @@
       "source_file": "app.js",
       "source_location": "L263",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "app",
-      "target": "app_getundosnapshotsignature",
-      "confidence_score": 1.0
+      "target": "app_getundosnapshotsignature"
     },
     {
       "relation": "contains",
@@ -5888,9 +5919,9 @@
       "source_file": "app.js",
       "source_location": "L226",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "app",
-      "target": "app_lastundocheckpoint",
-      "confidence_score": 1.0
+      "target": "app_lastundocheckpoint"
     },
     {
       "relation": "contains",
@@ -7078,9 +7109,9 @@
       "source_file": "app.js",
       "source_location": "L132",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "app",
-      "target": "app_undobutton",
-      "confidence_score": 1.0
+      "target": "app_undobutton"
     },
     {
       "relation": "contains",
@@ -7088,9 +7119,9 @@
       "source_file": "app.js",
       "source_location": "L223",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "app",
-      "target": "app_undohistory",
-      "confidence_score": 1.0
+      "target": "app_undohistory"
     },
     {
       "relation": "contains",
@@ -7098,9 +7129,9 @@
       "source_file": "app.js",
       "source_location": "L303",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "app",
-      "target": "app_undolastaction",
-      "confidence_score": 1.0
+      "target": "app_undolastaction"
     },
     {
       "relation": "contains",
@@ -7188,9 +7219,9 @@
       "source_file": "app.js",
       "source_location": "L298",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "app",
-      "target": "app_updateundobuttonstate",
-      "confidence_score": 1.0
+      "target": "app_updateundobuttonstate"
     },
     {
       "relation": "contains",
@@ -7389,9 +7420,9 @@
       "source_file": "app.js",
       "source_location": "L239",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "app_createundosnapshot",
-      "target": "app_clonezonesforundo",
-      "confidence_score": 1.0
+      "target": "app_clonezonesforundo"
     },
     {
       "relation": "calls",
@@ -7400,9 +7431,9 @@
       "source_file": "app.js",
       "source_location": "L319",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "app_undolastaction",
-      "target": "app_clonezonesforundo",
-      "confidence_score": 1.0
+      "target": "app_clonezonesforundo"
     },
     {
       "relation": "calls",
@@ -7411,9 +7442,9 @@
       "source_file": "app.js",
       "source_location": "L280",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "app_checkpointundo",
-      "target": "app_createundosnapshot",
-      "confidence_score": 1.0
+      "target": "app_createundosnapshot"
     },
     {
       "relation": "calls",
@@ -7422,9 +7453,9 @@
       "source_file": "app.js",
       "source_location": "L240",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "app_createundosnapshot",
-      "target": "app_structuredcloneprojectdata",
-      "confidence_score": 1.0
+      "target": "app_structuredcloneprojectdata"
     },
     {
       "relation": "calls",
@@ -7433,9 +7464,9 @@
       "source_file": "app.js",
       "source_location": "L307",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "app_undolastaction",
-      "target": "app_createundosnapshot",
-      "confidence_score": 1.0
+      "target": "app_createundosnapshot"
     },
     {
       "relation": "calls",
@@ -7444,9 +7475,9 @@
       "source_file": "app.js",
       "source_location": "L281",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "app_checkpointundo",
-      "target": "app_getundosnapshotsignature",
-      "confidence_score": 1.0
+      "target": "app_getundosnapshotsignature"
     },
     {
       "relation": "calls",
@@ -7455,9 +7486,9 @@
       "source_file": "app.js",
       "source_location": "L307",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "app_undolastaction",
-      "target": "app_getundosnapshotsignature",
-      "confidence_score": 1.0
+      "target": "app_getundosnapshotsignature"
     },
     {
       "relation": "calls",
@@ -7466,9 +7497,9 @@
       "source_file": "app.js",
       "source_location": "L2604",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "app_applypresentationpreset",
-      "target": "app_checkpointundo",
-      "confidence_score": 1.0
+      "target": "app_checkpointundo"
     },
     {
       "relation": "calls",
@@ -7477,9 +7508,9 @@
       "source_file": "app.js",
       "source_location": "L2837",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "app_applystepsettings",
-      "target": "app_checkpointundo",
-      "confidence_score": 1.0
+      "target": "app_checkpointundo"
     },
     {
       "relation": "calls",
@@ -7488,9 +7519,9 @@
       "source_file": "app.js",
       "source_location": "L289",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "app_checkpointundo",
-      "target": "app_updateundobuttonstate",
-      "confidence_score": 1.0
+      "target": "app_updateundobuttonstate"
     },
     {
       "relation": "calls",
@@ -7499,9 +7530,9 @@
       "source_file": "app.js",
       "source_location": "L1546",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "app_createmanualzone",
-      "target": "app_checkpointundo",
-      "confidence_score": 1.0
+      "target": "app_checkpointundo"
     },
     {
       "relation": "calls",
@@ -7510,9 +7541,9 @@
       "source_file": "app.js",
       "source_location": "L1624",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "app_deleteselectedzones",
-      "target": "app_checkpointundo",
-      "confidence_score": 1.0
+      "target": "app_checkpointundo"
     },
     {
       "relation": "calls",
@@ -7521,9 +7552,9 @@
       "source_file": "app.js",
       "source_location": "L1580",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "app_duplicateselectedzone",
-      "target": "app_checkpointundo",
-      "confidence_score": 1.0
+      "target": "app_checkpointundo"
     },
     {
       "relation": "calls",
@@ -7532,9 +7563,9 @@
       "source_file": "app.js",
       "source_location": "L2375",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "app_movezoneorder",
-      "target": "app_checkpointundo",
-      "confidence_score": 1.0
+      "target": "app_checkpointundo"
     },
     {
       "relation": "calls",
@@ -7543,9 +7574,9 @@
       "source_file": "app.js",
       "source_location": "L2498",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "app_movezoneordertoend",
-      "target": "app_checkpointundo",
-      "confidence_score": 1.0
+      "target": "app_checkpointundo"
     },
     {
       "relation": "calls",
@@ -7554,9 +7585,9 @@
       "source_file": "app.js",
       "source_location": "L2429",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "app_movezoneordertoposition",
-      "target": "app_checkpointundo",
-      "confidence_score": 1.0
+      "target": "app_checkpointundo"
     },
     {
       "relation": "calls",
@@ -7565,9 +7596,9 @@
       "source_file": "app.js",
       "source_location": "L2399",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "app_movezoneordertotarget",
-      "target": "app_checkpointundo",
-      "confidence_score": 1.0
+      "target": "app_checkpointundo"
     },
     {
       "relation": "calls",
@@ -7576,9 +7607,9 @@
       "source_file": "app.js",
       "source_location": "L1669",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "app_nudgeselectedzones",
-      "target": "app_checkpointundo",
-      "confidence_score": 1.0
+      "target": "app_checkpointundo"
     },
     {
       "relation": "calls",
@@ -7587,9 +7618,9 @@
       "source_file": "app.js",
       "source_location": "L2931",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "app_resetsubdivisionforselection",
-      "target": "app_checkpointundo",
-      "confidence_score": 1.0
+      "target": "app_checkpointundo"
     },
     {
       "relation": "calls",
@@ -7598,9 +7629,9 @@
       "source_file": "app.js",
       "source_location": "L2022",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "app_resetzonegroupsandmodes",
-      "target": "app_checkpointundo",
-      "confidence_score": 1.0
+      "target": "app_checkpointundo"
     },
     {
       "relation": "calls",
@@ -7609,9 +7640,9 @@
       "source_file": "app.js",
       "source_location": "L1708",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "app_rundetection",
-      "target": "app_checkpointundo",
-      "confidence_score": 1.0
+      "target": "app_checkpointundo"
     },
     {
       "relation": "calls",
@@ -7620,9 +7651,9 @@
       "source_file": "app.js",
       "source_location": "L2866",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "app_subdivideselectedzone",
-      "target": "app_checkpointundo",
-      "confidence_score": 1.0
+      "target": "app_checkpointundo"
     },
     {
       "relation": "calls",
@@ -7631,9 +7662,9 @@
       "source_file": "app.js",
       "source_location": "L1296",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "app_toggleselectedzonelock",
-      "target": "app_checkpointundo",
-      "confidence_score": 1.0
+      "target": "app_checkpointundo"
     },
     {
       "relation": "calls",
@@ -7642,9 +7673,9 @@
       "source_file": "app.js",
       "source_location": "L2007",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "app_togglezonedeferredreveal",
-      "target": "app_checkpointundo",
-      "confidence_score": 1.0
+      "target": "app_checkpointundo"
     },
     {
       "relation": "calls",
@@ -7653,9 +7684,9 @@
       "source_file": "app.js",
       "source_location": "L1961",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "app_togglezonefocusmode",
-      "target": "app_checkpointundo",
-      "confidence_score": 1.0
+      "target": "app_checkpointundo"
     },
     {
       "relation": "calls",
@@ -7664,9 +7695,9 @@
       "source_file": "app.js",
       "source_location": "L2169",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "app_updateallzonesenabled",
-      "target": "app_checkpointundo",
-      "confidence_score": 1.0
+      "target": "app_checkpointundo"
     },
     {
       "relation": "calls",
@@ -7675,9 +7706,9 @@
       "source_file": "app.js",
       "source_location": "L2149",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "app_updateselectedzoneanimation",
-      "target": "app_checkpointundo",
-      "confidence_score": 1.0
+      "target": "app_checkpointundo"
     },
     {
       "relation": "calls",
@@ -7829,9 +7860,9 @@
       "source_file": "app.js",
       "source_location": "L295",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "app_clearundohistory",
-      "target": "app_updateundobuttonstate",
-      "confidence_score": 1.0
+      "target": "app_updateundobuttonstate"
     },
     {
       "relation": "calls",
@@ -7840,9 +7871,9 @@
       "source_file": "app.js",
       "source_location": "L313",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "app_undolastaction",
-      "target": "app_updateundobuttonstate",
-      "confidence_score": 1.0
+      "target": "app_updateundobuttonstate"
     },
     {
       "relation": "calls",
@@ -7851,9 +7882,9 @@
       "source_file": "app.js",
       "source_location": "L345",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "app_undolastaction",
-      "target": "app_drawannotatedpreview",
-      "confidence_score": 1.0
+      "target": "app_drawannotatedpreview"
     },
     {
       "relation": "calls",
@@ -7862,9 +7893,9 @@
       "source_file": "app.js",
       "source_location": "L349",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "app_undolastaction",
-      "target": "app_loadstepeditorfromzones",
-      "confidence_score": 1.0
+      "target": "app_loadstepeditorfromzones"
     },
     {
       "relation": "calls",
@@ -7873,9 +7904,9 @@
       "source_file": "app.js",
       "source_location": "L347",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "app_undolastaction",
-      "target": "app_renderanimationstage",
-      "confidence_score": 1.0
+      "target": "app_renderanimationstage"
     },
     {
       "relation": "calls",
@@ -7884,9 +7915,9 @@
       "source_file": "app.js",
       "source_location": "L346",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "app_undolastaction",
-      "target": "app_renderzones",
-      "confidence_score": 1.0
+      "target": "app_renderzones"
     },
     {
       "relation": "calls",
@@ -7895,9 +7926,9 @@
       "source_file": "app.js",
       "source_location": "L351",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "app_undolastaction",
-      "target": "app_renderzonesorderpanel",
-      "confidence_score": 1.0
+      "target": "app_renderzonesorderpanel"
     },
     {
       "relation": "calls",
@@ -7906,9 +7937,9 @@
       "source_file": "app.js",
       "source_location": "L318",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "app_undolastaction",
-      "target": "app_resetpreviewplayback",
-      "confidence_score": 1.0
+      "target": "app_resetpreviewplayback"
     },
     {
       "relation": "calls",
@@ -7917,9 +7948,9 @@
       "source_file": "app.js",
       "source_location": "L356",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "app_undolastaction",
-      "target": "app_setanimationstatus",
-      "confidence_score": 1.0
+      "target": "app_setanimationstatus"
     },
     {
       "relation": "calls",
@@ -7928,9 +7959,9 @@
       "source_file": "app.js",
       "source_location": "L320",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "app_undolastaction",
-      "target": "app_structuredcloneprojectdata",
-      "confidence_score": 1.0
+      "target": "app_structuredcloneprojectdata"
     },
     {
       "relation": "calls",
@@ -7939,9 +7970,9 @@
       "source_file": "app.js",
       "source_location": "L342",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "app_undolastaction",
-      "target": "app_syncanimationformcontrols",
-      "confidence_score": 1.0
+      "target": "app_syncanimationformcontrols"
     },
     {
       "relation": "calls",
@@ -7950,9 +7981,9 @@
       "source_file": "app.js",
       "source_location": "L343",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "app_undolastaction",
-      "target": "app_syncanimationlabels",
-      "confidence_score": 1.0
+      "target": "app_syncanimationlabels"
     },
     {
       "relation": "calls",
@@ -7961,9 +7992,9 @@
       "source_file": "app.js",
       "source_location": "L340",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "app_undolastaction",
-      "target": "app_syncdetectionlabels",
-      "confidence_score": 1.0
+      "target": "app_syncdetectionlabels"
     },
     {
       "relation": "calls",
@@ -7972,9 +8003,9 @@
       "source_file": "app.js",
       "source_location": "L352",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "app_undolastaction",
-      "target": "app_updateanimationcontrolsstate",
-      "confidence_score": 1.0
+      "target": "app_updateanimationcontrolsstate"
     },
     {
       "relation": "calls",
@@ -7983,9 +8014,9 @@
       "source_file": "app.js",
       "source_location": "L341",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "app_undolastaction",
-      "target": "app_updatedetectiondiagnostics",
-      "confidence_score": 1.0
+      "target": "app_updatedetectiondiagnostics"
     },
     {
       "relation": "calls",
@@ -7994,9 +8025,9 @@
       "source_file": "app.js",
       "source_location": "L344",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "app_undolastaction",
-      "target": "app_updateformatlabel",
-      "confidence_score": 1.0
+      "target": "app_updateformatlabel"
     },
     {
       "relation": "calls",
@@ -8005,9 +8036,9 @@
       "source_file": "app.js",
       "source_location": "L348",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "app_undolastaction",
-      "target": "app_updateinspector",
-      "confidence_score": 1.0
+      "target": "app_updateinspector"
     },
     {
       "relation": "calls",
@@ -14443,9 +14474,9 @@
       "source_file": "group-editor.js",
       "source_location": "L890",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "group_editor_deletegroup",
-      "target": "group_editor_getgroupkindlabel",
-      "confidence_score": 1.0
+      "target": "group_editor_getgroupkindlabel"
     },
     {
       "relation": "calls",
@@ -14454,9 +14485,9 @@
       "source_file": "group-editor.js",
       "source_location": "L833",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "group_editor_removezonefromgroup",
-      "target": "group_editor_getgroupkindlabel",
-      "confidence_score": 1.0
+      "target": "group_editor_getgroupkindlabel"
     },
     {
       "relation": "calls",
@@ -14733,9 +14764,9 @@
       "source_file": "package.json",
       "source_location": "L5",
       "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "package",
-      "target": "package_description"
+      "source": "home_majorel_documents_mes_appli_html_decoupezoneimage_package_json",
+      "target": "decoupezoneimage_package_description",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -14743,9 +14774,9 @@
       "source_file": "package.json",
       "source_location": "L10",
       "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "package",
-      "target": "package_devdependencies"
+      "source": "home_majorel_documents_mes_appli_html_decoupezoneimage_package_json",
+      "target": "decoupezoneimage_package_devdependencies",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -14753,9 +14784,9 @@
       "source_file": "package.json",
       "source_location": "L2",
       "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "package",
-      "target": "package_name"
+      "source": "home_majorel_documents_mes_appli_html_decoupezoneimage_package_json",
+      "target": "decoupezoneimage_package_name",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -14763,9 +14794,9 @@
       "source_file": "package.json",
       "source_location": "L4",
       "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "package",
-      "target": "package_private"
+      "source": "home_majorel_documents_mes_appli_html_decoupezoneimage_package_json",
+      "target": "decoupezoneimage_package_private",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -14773,9 +14804,9 @@
       "source_file": "package.json",
       "source_location": "L6",
       "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "package",
-      "target": "package_scripts"
+      "source": "home_majorel_documents_mes_appli_html_decoupezoneimage_package_json",
+      "target": "decoupezoneimage_package_scripts",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -14783,9 +14814,9 @@
       "source_file": "package.json",
       "source_location": "L3",
       "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "package",
-      "target": "package_version"
+      "source": "home_majorel_documents_mes_appli_html_decoupezoneimage_package_json",
+      "target": "decoupezoneimage_package_version",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -14793,9 +14824,9 @@
       "source_file": "package.json",
       "source_location": "L8",
       "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "package_scripts",
-      "target": "package_scripts_check"
+      "source": "decoupezoneimage_package_scripts",
+      "target": "decoupezoneimage_package_scripts_check",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -14803,9 +14834,9 @@
       "source_file": "package.json",
       "source_location": "L7",
       "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "package_scripts",
-      "target": "package_scripts_test"
+      "source": "decoupezoneimage_package_scripts",
+      "target": "decoupezoneimage_package_scripts_test",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -14883,9 +14914,9 @@
       "source_file": "AGENTS.md",
       "source_location": "L1",
       "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "agents",
-      "target": "agents_graphify"
+      "source": "home_majorel_documents_mes_appli_html_decoupezoneimage_agents_md",
+      "target": "decoupezoneimage_agents_graphify",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",

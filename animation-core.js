@@ -68,6 +68,28 @@
     return `translate(${x}px, ${y}px) scale(${scale}) rotate(${rotate}deg)`;
   }
 
+  function getQualityLimitedScale(targetScale, boxes, options = {}) {
+    const minimumScale = Number.isFinite(Number(options.minimumScale)) ? Number(options.minimumScale) : 0.62;
+    const maximumScale = Number.isFinite(Number(options.maximumScale)) ? Number(options.maximumScale) : Infinity;
+    const tolerance = Number.isFinite(Number(options.tolerance)) ? Number(options.tolerance) : 1.5;
+    const devicePixelRatio = Math.max(1, Number(options.devicePixelRatio) || 1);
+    const compositionScale = Math.max(minimumScale, Math.min(maximumScale, Number(targetScale) || 1));
+    const qualityLimits = (Array.isArray(boxes) ? boxes : [])
+      .map((box) => {
+        const width = Number(box?.width);
+        const height = Number(box?.height);
+        const naturalWidth = Number(box?.naturalWidth);
+        const naturalHeight = Number(box?.naturalHeight);
+        if (!(width > 0) || !(height > 0) || !(naturalWidth > 0) || !(naturalHeight > 0)) {
+          return null;
+        }
+        return (Math.min(naturalWidth / width, naturalHeight / height) * tolerance) / devicePixelRatio;
+      })
+      .filter((limit) => Number.isFinite(limit) && limit > 0);
+
+    return qualityLimits.length ? Math.min(compositionScale, ...qualityLimits) : compositionScale;
+  }
+
   function getGroupFocusLayout(stageWidth, stageHeight, boxes, fallbackScale = 1) {
     const validBoxes = (Array.isArray(boxes) ? boxes : []).filter(
       (box) =>
@@ -94,7 +116,10 @@
     const centerX = bounds.left + groupWidth / 2;
     const centerY = bounds.top + groupHeight / 2;
     const targetScale = Math.min((stageWidth * 0.82) / groupWidth, (stageHeight * 0.82) / groupHeight);
-    const scale = Math.max(0.62, Math.min(2.4, targetScale));
+    const scale = getQualityLimitedScale(targetScale, validBoxes, {
+      maximumScale: 2.4,
+      devicePixelRatio: globalScope.devicePixelRatio,
+    });
     return {
       translateX: stageWidth / 2 - centerX,
       translateY: stageHeight / 2 - centerY,
@@ -165,6 +190,7 @@
     hiddenRotation,
     hiddenBlur,
     buildTransform,
+    getQualityLimitedScale,
     getGroupFocusLayout,
     resolveTimingGroupDelay,
     mergeGroupOrder,

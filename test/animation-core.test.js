@@ -58,6 +58,29 @@ test("getGroupFocusLayout centers the group without collapsing member positions"
   assert.equal(secondCenterAfterScale - firstCenterAfterScale, 480);
 });
 
+test("getQualityLimitedScale allows a controlled 50 percent raster tolerance", () => {
+  assert.ok(
+    Math.abs(AnimationCore.getQualityLimitedScale(
+      2.4,
+      [{ width: 100, height: 100, naturalWidth: 150, naturalHeight: 200 }],
+      { maximumScale: 2.4, devicePixelRatio: 1 }
+    ) - 2.25) < 1e-10
+  );
+});
+
+test("getQualityLimitedScale protects every member of a focus or recap group", () => {
+  assert.ok(
+    Math.abs(AnimationCore.getQualityLimitedScale(
+      4,
+      [
+        { width: 100, height: 100, naturalWidth: 600, naturalHeight: 600 },
+        { width: 100, height: 100, naturalWidth: 120, naturalHeight: 160 },
+      ],
+      { maximumScale: Infinity, devicePixelRatio: 1 }
+    ) - 1.8) < 1e-10
+  );
+});
+
 test("resolveTimingGroupDelay reveals a focused timing group as one event", () => {
   assert.equal(AnimationCore.resolveTimingGroupDelay(60, 80, 2, false, [60, 20, 100]), 220);
   assert.equal(AnimationCore.resolveTimingGroupDelay(60, 80, 2, true, [60, 20, 100]), 20);

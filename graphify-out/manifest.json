@@ -1,61 +1,61 @@
 {
   "app.js": {
-    "mtime": 1782820257.2766843,
-    "ast_hash": "aad6074ad9f12d03d7840549bf93c559",
+    "mtime": 1784190413.896449,
+    "ast_hash": "44c6c8ccb534f051b8d78e201e74130d",
     "semantic_hash": ""
   },
   "group-editor.js": {
-    "mtime": 1782820163.6012208,
+    "mtime": 1782823088.0,
     "ast_hash": "aaf856fc5e4d6e725a377fbe127a18aa",
     "semantic_hash": ""
   },
   "group-focus.js": {
-    "mtime": 1782236779.0,
+    "mtime": 1782823088.0,
     "ast_hash": "960ae05a7501dcce473076b6079c84fb",
     "semantic_hash": ""
   },
   "AGENTS.md": {
-    "mtime": 1782236779.0,
+    "mtime": 1782823088.0,
     "ast_hash": "62c05a2bf20bf036a0b2633478663e64",
     "semantic_hash": ""
   },
   "README.md": {
-    "mtime": 1782820306.6049814,
+    "mtime": 1782823088.0,
     "ast_hash": "e53fa232973eccca68041c7f56dd6f4a",
     "semantic_hash": ""
   },
   "index.html": {
-    "mtime": 1782820390.222822,
+    "mtime": 1782823088.0,
     "ast_hash": "dd17ff2bf70aa104bb97c6c2cdb37a2c",
     "semantic_hash": ""
   },
   "animation-core.js": {
-    "mtime": 1782819440.7451863,
-    "ast_hash": "b9737976d09c92279132eeed67239398",
+    "mtime": 1784190413.7934492,
+    "ast_hash": "5d962b1e3fd093314f7dc3e3264cd6d3",
     "semantic_hash": ""
   },
   "detection-core.js": {
-    "mtime": 1782236779.0,
+    "mtime": 1782823088.0,
     "ast_hash": "88cb4ee175da56001a072bd9590a1fd1",
     "semantic_hash": ""
   },
   "package.json": {
-    "mtime": 1782236779.0,
+    "mtime": 1782823088.0,
     "ast_hash": "387557613b934becf2c31466044a6d8e",
     "semantic_hash": ""
   },
   "test/animation-core.test.js": {
-    "mtime": 1782819441.0141935,
-    "ast_hash": "af34cb5494d11a84e60ca023fc28f3a3",
+    "mtime": 1784190428.3044472,
+    "ast_hash": "1198bda4d92f0e5584057342bd5ea508",
     "semantic_hash": ""
   },
   "test/detection-core.test.js": {
-    "mtime": 1782236779.0,
+    "mtime": 1782823088.0,
     "ast_hash": "7378c959b82db36d17d158ce5da6de5a",
     "semantic_hash": ""
   },
   ".github/workflows/static.yml": {
-    "mtime": 1782236779.0,
+    "mtime": 1782823088.0,
     "ast_hash": "4bbcd37da310febbd93503bd5d458eb7",
     "semantic_hash": ""
   }
