@@ -87,6 +87,7 @@ const state = {
     stepMode: "key",
     autoStepGap: 220,
     showGuide: true,
+    magnetEnabled: true,
   },
   stepEditor: {
     step: 1,
@@ -166,6 +167,7 @@ const formatHint = document.querySelector("#formatHint");
 const startTriggerSelect = document.querySelector("#startTriggerSelect");
 const stepModeSelect = document.querySelector("#stepModeSelect");
 const guideToggle = document.querySelector("#guideToggle");
+const magnetToggle = document.querySelector("#magnetToggle");
 const stepEditorInput = document.querySelector("#stepEditorInput");
 const stepEffectSelect = document.querySelector("#stepEffectSelect");
 const stepDurationRange = document.querySelector("#stepDurationRange");
@@ -521,6 +523,14 @@ guideToggle.addEventListener("change", () => {
   checkpointUndo("affichage du guide");
   state.animationSettings.showGuide = guideToggle.checked;
   renderAnimationStage();
+});
+
+magnetToggle.addEventListener("change", () => {
+  state.animationSettings.magnetEnabled = magnetToggle.checked;
+  setStatus(
+    magnetToggle.checked ? "Aimantation active." : "Aimantation desactivee.",
+    magnetToggle.checked ? "Les bords proches des zones voisines se collent." : "Les zones se deplacent librement."
+  );
 });
 
 stepEditorInput.addEventListener("input", () => {
@@ -1198,8 +1208,9 @@ function handlePreviewCanvasPointerMove(event) {
         0,
         previewCanvas.height - zone.height
       );
-      zone.x = Math.round(nextX);
-      zone.y = Math.round(nextY);
+      const nextBox = magnetizeMovedBox({ x: nextX, y: nextY, width: zone.width, height: zone.height }, zone.id);
+      zone.x = nextBox.x;
+      zone.y = nextBox.y;
       state.previewEdit.pointerMoved = true;
       previewCanvas.style.cursor = "grabbing";
       drawAnnotatedPreview();
@@ -1207,7 +1218,11 @@ function handlePreviewCanvasPointerMove(event) {
       return;
     }
 
-    const nextBox = computeResizedBox(state.previewEdit.startBox, state.previewEdit.handle, point.x - state.previewEdit.startX, point.y - state.previewEdit.startY);
+    const nextBox = magnetizeResizedBox(
+      computeResizedBox(state.previewEdit.startBox, state.previewEdit.handle, point.x - state.previewEdit.startX, point.y - state.previewEdit.startY),
+      zone.id,
+      state.previewEdit.handle
+    );
     zone.x = nextBox.x;
     zone.y = nextBox.y;
     zone.width = nextBox.width;
@@ -1501,6 +1516,72 @@ function computeResizedBox(startBox, handle, deltaX, deltaY) {
     width: Math.round(right - left),
     height: Math.round(bottom - top),
   };
+}
+
+const MAGNET_DISTANCE = 10;
+
+function magnetizeMovedBox(box, zoneId) {
+  if (!state.animationSettings.magnetEnabled) {
+    return { ...box, x: Math.round(box.x), y: Math.round(box.y) };
+  }
+
+  const otherEdges = getOtherZoneEdges(zoneId);
+  const offsetX = findClosestSnapOffset([box.x, box.x + box.width], otherEdges.x);
+  const offsetY = findClosestSnapOffset([box.y, box.y + box.height], otherEdges.y);
+  return {
+    ...box,
+    x: Math.round(clamp(box.x + offsetX, 0, previewCanvas.width - box.width)),
+    y: Math.round(clamp(box.y + offsetY, 0, previewCanvas.height - box.height)),
+  };
+}
+
+function magnetizeResizedBox(box, zoneId, handle) {
+  if (!state.animationSettings.magnetEnabled) {
+    return box;
+  }
+
+  const edges = getOtherZoneEdges(zoneId);
+  let { x: left, y: top, width, height } = box;
+  let right = left + width;
+  let bottom = top + height;
+
+  if (handle.includes("w")) left += findClosestSnapOffset([left], edges.x);
+  if (handle.includes("e")) right += findClosestSnapOffset([right], edges.x);
+  if (handle.includes("n")) top += findClosestSnapOffset([top], edges.y);
+  if (handle.includes("s")) bottom += findClosestSnapOffset([bottom], edges.y);
+
+  left = clamp(left, 0, right - 16);
+  top = clamp(top, 0, bottom - 16);
+  right = clamp(right, left + 16, previewCanvas.width);
+  bottom = clamp(bottom, top + 16, previewCanvas.height);
+  return { x: Math.round(left), y: Math.round(top), width: Math.round(right - left), height: Math.round(bottom - top) };
+}
+
+function getOtherZoneEdges(zoneId) {
+  const x = [];
+  const y = [];
+  state.zones.forEach((zone) => {
+    if (zone.id !== zoneId) {
+      x.push(zone.x, zone.x + zone.width);
+      y.push(zone.y, zone.y + zone.height);
+    }
+  });
+  return { x, y };
+}
+
+function findClosestSnapOffset(movingEdges, targetEdges) {
+  let bestOffset = 0;
+  let bestDistance = MAGNET_DISTANCE + 1;
+  movingEdges.forEach((movingEdge) => {
+    targetEdges.forEach((targetEdge) => {
+      const offset = targetEdge - movingEdge;
+      if (Math.abs(offset) <= MAGNET_DISTANCE && Math.abs(offset) < bestDistance) {
+        bestOffset = offset;
+        bestDistance = Math.abs(offset);
+      }
+    });
+  });
+  return bestOffset;
 }
 
 function resetPreviewEditState() {
@@ -3805,6 +3886,7 @@ function syncAnimationFormControls() {
   stepModeSelect.value = state.animationSettings.stepMode;
   autoStepGapRange.value = String(state.animationSettings.autoStepGap);
   guideToggle.checked = state.animationSettings.showGuide;
+  magnetToggle.checked = state.animationSettings.magnetEnabled;
 }
 
 function sanitizeAnimationSettings(settings = {}) {
@@ -3818,6 +3900,7 @@ function sanitizeAnimationSettings(settings = {}) {
       : state.animationSettings.stepMode,
     autoStepGap: clamp(Number(settings.autoStepGap) || state.animationSettings.autoStepGap, 0, 2000),
     showGuide: typeof settings.showGuide === "boolean" ? settings.showGuide : state.animationSettings.showGuide,
+    magnetEnabled: typeof settings.magnetEnabled === "boolean" ? settings.magnetEnabled : state.animationSettings.magnetEnabled,
   };
 }
 

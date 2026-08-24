@@ -1,11 +1,11 @@
-# Graph Report - decoupeinfographie-main  (2026-07-16)
+# Graph Report - decoupeinfographie-main  (2026-08-24)
 
 ## Corpus Check
-- 10 files · ~28,869 words
+- 10 files · ~29,210 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 417 nodes · 1030 edges · 20 communities (18 shown, 2 thin omitted)
+- 422 nodes · 1043 edges · 18 communities (16 shown, 2 thin omitted)
 - Extraction: 91% EXTRACTED · 9% INFERRED · 0% AMBIGUOUS · INFERRED: 92 edges (avg confidence: 0.8)
 - Token cost: 0 input · 0 output
 
@@ -26,10 +26,8 @@
 - [[_COMMUNITY_Community 13|Community 13]]
 - [[_COMMUNITY_Community 14|Community 14]]
 - [[_COMMUNITY_Community 15|Community 15]]
-- [[_COMMUNITY_Community 16|Community 16]]
 - [[_COMMUNITY_Community 21|Community 21]]
 - [[_COMMUNITY_Community 23|Community 23]]
-- [[_COMMUNITY_Community 25|Community 25]]
 
 ## God Nodes (most connected - your core abstractions)
 1. `updateAnimationControlsState()` - 43 edges
@@ -44,33 +42,33 @@
 10. `runDetection()` - 21 edges
 
 ## Surprising Connections (you probably didn't know these)
-- `reorderGroupMember()` --calls--> `checkpointUndo()`  [INFERRED]
-  group-editor.js → app.js
 - `undoLastAction()` --calls--> `renderGroupsPanel()`  [INFERRED]
   app.js → group-editor.js
-- `createNewFocusGroup()` --calls--> `setAnimationStatus()`  [INFERRED]
-  group-editor.js → app.js
-- `createNewRecapGroup()` --calls--> `setAnimationStatus()`  [INFERRED]
-  group-editor.js → app.js
-- `createNewTimingGroup()` --calls--> `setAnimationStatus()`  [INFERRED]
-  group-editor.js → app.js
+- `runDetection()` --calls--> `renderGroupsPanel()`  [INFERRED]
+  app.js → group-editor.js
+- `toggleZoneFocusMode()` --calls--> `createDefaultGroupPresentation()`  [INFERRED]
+  app.js → group-focus.js
+- `serializeGroupForProject()` --calls--> `sanitizeGroupPresentation()`  [INFERRED]
+  app.js → group-focus.js
+- `restoreProjectState()` --calls--> `renderGroupsPanel()`  [INFERRED]
+  app.js → group-editor.js
 
 ## Import Cycles
 - None detected.
 
-## Communities (20 total, 2 thin omitted)
+## Communities (18 total, 2 thin omitted)
 
 ### Community 0 - "Community 0"
 Cohesion: 0.02
-Nodes (107): addZoneModeButton, animationStage, animationStageViewport, animationStatusText, applyRectStyles(), applyStepSettingsButton, autoStepGapRange, autoStepGapValue (+99 more)
+Nodes (108): addZoneModeButton, animationStage, animationStageViewport, animationStatusText, applyRectStyles(), applyStepSettingsButton, autoStepGapRange, autoStepGapValue (+100 more)
 
 ### Community 1 - "Community 1"
-Cohesion: 0.21
-Nodes (44): applyPresentationPreset(), applyStepSettings(), createManualZone(), createZoneAsset(), deleteSelectedZones(), drawAnnotatedPreview(), duplicateSelectedZone(), getGroupsByKind() (+36 more)
+Cohesion: 0.15
+Nodes (59): applyPresentationPreset(), applyStepSettings(), checkpointUndo(), createManualZone(), createZoneAsset(), deleteSelectedZones(), drawAnnotatedPreview(), duplicateSelectedZone() (+51 more)
 
 ### Community 2 - "Community 2"
-Cohesion: 0.16
-Nodes (15): applyDetectionSettings(), applyPreset(), clearUndoHistory(), cloneZonesForUndo(), createUndoSnapshot(), formatNumber(), getUndoSnapshotSignature(), serializeZoneForProject() (+7 more)
+Cohesion: 0.09
+Nodes (36): applyDetectionSettings(), applyPreset(), buildExportRecapGroups(), buildStepSchedule(), clearUndoHistory(), cloneZonesForUndo(), countEnabledZones(), createRuntimeController() (+28 more)
 
 ### Community 3 - "Community 3"
 Cohesion: 0.40
@@ -81,20 +79,20 @@ Cohesion: 0.11
 Nodes (29): boxesAreNear(), bridgeBinaryGaps(), bridgeMask(), buildForegroundMask(), clamp(), closeSmallGaps(), combineBoxes(), countMaskPixels() (+21 more)
 
 ### Community 5 - "Community 5"
-Cohesion: 0.14
-Nodes (18): analyzeZoneSubdivision(), boxesAreNear(), bridgeBinaryGaps(), bridgeMask(), chooseBestSubdivision(), combineBoxes(), detectComponentZones(), detectLayoutZones() (+10 more)
+Cohesion: 0.13
+Nodes (19): analyzeZoneSubdivision(), boxesAreNear(), bridgeBinaryGaps(), bridgeMask(), chooseBestSubdivision(), combineBoxes(), detectComponentZones(), detectLayoutZones() (+11 more)
 
 ### Community 6 - "Community 6"
 Cohesion: 0.11
 Nodes (18): Detection, Double analyse locale, Editeur d'animation, Effets actuellement disponibles, Export HTML, Groupes d'apparition, Limites actuelles, Liste des zones (+10 more)
 
 ### Community 7 - "Community 7"
-Cohesion: 0.11
-Nodes (25): clamp(), computeResizedBox(), cursorForPreviewHandle(), drawPreviewDeleteAction(), drawRoundedRect(), findZoneAtCanvasPoint(), getCanvasPoint(), getFocusAppearanceForDepth() (+17 more)
+Cohesion: 0.12
+Nodes (26): clamp(), computeResizedBox(), cursorForPreviewHandle(), drawPreviewDeleteAction(), drawPreviewResizeHandles(), drawRoundedRect(), findClosestSnapOffset(), findZoneAtCanvasPoint() (+18 more)
 
 ### Community 8 - "Community 8"
-Cohesion: 0.11
-Nodes (22): buildExportHtml(), buildExportRecapGroups(), buildProjectPayload(), buildStepSchedule(), buildZipBlob(), countEnabledZones(), createRuntimeController(), createZipEndRecord() (+14 more)
+Cohesion: 0.20
+Nodes (12): buildExportHtml(), buildProjectPayload(), buildZipBlob(), createZipEndRecord(), encodeText(), escapeHtml(), exportOverlayHtml(), exportProjectZip() (+4 more)
 
 ### Community 9 - "Community 9"
 Cohesion: 0.25
@@ -105,46 +103,38 @@ Cohesion: 0.20
 Nodes (11): applyRoundZoneTransparency(), buildForegroundMask(), closeSmallGaps(), enrichLocalZoneGeometry(), enrichZoneGeometry(), estimateBackgroundColor(), extractLocalMask(), median() (+3 more)
 
 ### Community 11 - "Community 11"
-Cohesion: 0.22
-Nodes (10): chooseEvenlyDistributedSeparators(), colorDistance(), countMaskPixelsInBox(), detectVerticalSeparatorBoxes(), detectVerticalSeparators(), inferZoneShape(), luminance(), sampleMaskDensity() (+2 more)
+Cohesion: 0.25
+Nodes (9): chooseEvenlyDistributedSeparators(), colorDistance(), countMaskPixelsInBox(), detectVerticalSeparators(), inferZoneShape(), luminance(), sampleMaskDensity(), smoothNumericSeries() (+1 more)
 
 ### Community 12 - "Community 12"
 Cohesion: 0.50
 Nodes (4): clearZoneOrderDropIndicator(), handleZoneOrderListDrop(), resetZoneOrderDragState(), updateZoneOrderDropIndicator()
 
 ### Community 13 - "Community 13"
-Cohesion: 0.21
-Nodes (13): getEffectiveFocusGroupId(), getEffectOptions(), getTimingGroupForZone(), getZoneFocusGroupId(), getZoneRecapGroupId(), getZoneRevealAtEnd(), getZoneTimingGroupId(), isKnownEffect() (+5 more)
+Cohesion: 0.12
+Nodes (19): getEffectiveFocusGroupId(), getEffectOptions(), getFocusAppearanceForDepth(), getTimingGroupForZone(), getZoneFocusGroupId(), getZoneRecapGroupId(), getZoneTimingGroupId(), isKnownEffect() (+11 more)
 
 ### Community 14 - "Community 14"
 Cohesion: 0.22
 Nodes (8): description, devDependencies, name, private, scripts, check, test, version
 
-### Community 15 - "Community 15"
-Cohesion: 0.67
-Nodes (3): drawPreviewResizeHandles(), getPreviewHandleRects(), getPreviewInteractionSize()
-
 ### Community 23 - "Community 23"
 Cohesion: 0.17
 Nodes (12): buildTransform(), getGroupFocusLayout(), getQualityLimitedScale(), getZoneVisualState(), hiddenBlur(), hiddenOffsetX(), hiddenOffsetY(), hiddenRotation() (+4 more)
 
-### Community 25 - "Community 25"
-Cohesion: 0.19
-Nodes (26): checkpointUndo(), expandZonesToTimingGroups(), getSelectedZones(), makeId(), removeZoneFromAnyGroup(), toggleZoneFocusMode(), assignSelectionToFocusGroup(), assignSelectionToRecapGroup() (+18 more)
-
 ## Knowledge Gaps
-- **131 isolated node(s):** `FORMATS`, `presets`, `state`, `imageInput`, `projectInput` (+126 more)
+- **132 isolated node(s):** `FORMATS`, `presets`, `state`, `imageInput`, `projectInput` (+127 more)
   These have ≤1 connection - possible missing edges or undocumented components.
 - **2 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
 
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
-- **Why does `checkpointUndo()` connect `Community 25` to `Community 0`, `Community 1`, `Community 2`, `Community 13`?**
+- **Why does `checkpointUndo()` connect `Community 1` to `Community 0`, `Community 2`?**
   _High betweenness centrality (0.019) - this node is a cross-community bridge._
-- **Why does `renderGroupsPanel()` connect `Community 25` to `Community 1`, `Community 2`?**
+- **Why does `renderGroupsPanel()` connect `Community 1` to `Community 2`?**
   _High betweenness centrality (0.019) - this node is a cross-community bridge._
-- **Why does `sanitizeGroupPresentation()` connect `Community 7` to `Community 13`?**
+- **Why does `sanitizeGroupPresentation()` connect `Community 13` to `Community 7`?**
   _High betweenness centrality (0.013) - this node is a cross-community bridge._
 - **Are the 8 inferred relationships involving `updateAnimationControlsState()` (e.g. with `assignSelectionToFocusGroup()` and `assignSelectionToRecapGroup()`) actually correct?**
   _`updateAnimationControlsState()` has 8 INFERRED edges - model-reasoned connections that need verification._
